@@ -86,19 +86,16 @@ namespace fin_api.Controllers
         private async Task<LoginResponseViewModel> GerarJwt(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            var roles = await _userManager.GetRolesAsync(user);
-
-            var claims = new List<Claim>
+            var claims = await _userManager.GetClaimsAsync(user);
+            var userRoles = await _userManager.GetRolesAsync(user);
+            claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
+            foreach (var userRole in userRoles)
             {
-                new Claim(ClaimTypes.Name, user.UserName.Split("-")[0]),
-                new Claim(ClaimTypes.NameIdentifier, user.Id)
-            };
-
-            // Adiciona roles como claims
-            foreach (var role in roles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
+                claims.Add(new Claim("role", userRole));
             }
+
+            var identityClaims = new ClaimsIdentity();
+            identityClaims.AddClaims(claims);
 
 
             var tokenHandler = new JwtSecurityTokenHandler();
