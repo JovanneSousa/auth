@@ -4,6 +4,8 @@ public static class CorsConfig
 {
     public static WebApplicationBuilder AddCorsConfig(this WebApplicationBuilder builder)
     {
+        var allowedOrigin = builder.Configuration["MEU_APP"];
+
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("Total",
@@ -11,6 +13,12 @@ public static class CorsConfig
                     .AllowAnyOrigin()
                     .AllowAnyMethod()
                     .AllowAnyHeader());
+            options.AddPolicy("Production",
+                policy => policy
+                .WithOrigins(allowedOrigin)
+                      .AllowAnyMethod()
+                      .AllowCredentials()
+                      .AllowAnyHeader());
         });
         return builder;
     }

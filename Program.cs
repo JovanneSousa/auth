@@ -21,11 +21,14 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors("Total");
+} else
+{
+    app.UseCors("Production");
 }
 
-app.UseCors("Total");
 
-app.UseHttpsRedirection();
+    app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
