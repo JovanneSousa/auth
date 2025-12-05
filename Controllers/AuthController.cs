@@ -1,4 +1,6 @@
-﻿using auth.Models;
+﻿using auth.Controllers;
+using auth.Interfaces;
+using auth.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -11,18 +13,19 @@ namespace fin_api.Controllers
 {
     [ApiController]
     [Route("api/auth")]
-    public class AuthController : ControllerBase
+    public class AuthController : MainController
     {
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly JwtSettings _jwtSettings;
 
+
         public AuthController
             (
             SignInManager<IdentityUser> signInManager,
             UserManager<IdentityUser> userManager,
-            IOptions<JwtSettings> jwtSettings
-            )
+            IOptions<JwtSettings> jwtSettings, INotificador notificador, IUser appUser
+            ) : base(notificador, appUser)
         {
             _jwtSettings = jwtSettings.Value;
             _signInManager = signInManager;
@@ -68,7 +71,7 @@ namespace fin_api.Controllers
 
             if (result.Succeeded)
             {
-                return Ok(new { token = await GerarJwt(loginUser.Email) });
+                return CustomResponse(new { token = await GerarJwt(loginUser.Email) });
             }
 
             return Problem("Usuário ou senha incorreta");
