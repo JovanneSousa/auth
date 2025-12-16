@@ -24,8 +24,8 @@ namespace fin_api.Controllers
             (
             SignInManager<IdentityUser> signInManager,
             UserManager<IdentityUser> userManager,
-            IOptions<JwtSettings> jwtSettings, INotificador notificador, IUser appUser
-            ) : base(notificador, appUser)
+            IOptions<JwtSettings> jwtSettings, INotificador notificador
+            ) : base(notificador)
         {
             _jwtSettings = jwtSettings.Value;
             _signInManager = signInManager;
@@ -62,19 +62,23 @@ namespace fin_api.Controllers
         [HttpPost("login")]
         public async Task<ActionResult> Login(LoginUserViewModel loginUser)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
             var user = await _userManager.FindByEmailAsync(loginUser.Email);
 
-            if (user == null) return Problem("Usuário ou senha incorreta");
+            if (user == null)
+            {
+                _notificador.Handle(new Notificacao("usuário ou senha incorretos!"));
+                return CustomResponse();
+            };
 
             var result = await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true);
 
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                return CustomResponse(new { token = await GerarJwt(loginUser.Email) });
+                _notificador.Handle(new Notificacao("usuário ou senha incorretos!"));
+                return CustomResponse();
             }
 
-            return Problem("Usuário ou senha incorreta");
+            return CustomResponse(new { token = await GerarJwt(loginUser.Email) });
         }
 
         [HttpGet("wake-up")]
