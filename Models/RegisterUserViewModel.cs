@@ -18,5 +18,11 @@ namespace auth.Models
 
         [Compare("Password", ErrorMessage = "As senhas não conferem")]
         public string ConfirmPassword { get; set; }
+
+        [Required(ErrorMessage = "O campo {0} é obrigatório")]
+        public string System {  get; set; }
+
+        [Required(ErrorMessage = "O campo {0} é obrigatório")]
+        public string Profile { get; set; }
     }
 }

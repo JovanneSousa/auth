@@ -43,25 +43,82 @@ namespace fin_api.Controllers
             };
 
             var usuarioPorEmail = await _userManager.FindByEmailAsync(registerUser.Email);
-            var usuarioPorNome = await _userManager.FindByNameAsync(registerUser.Nome);
 
-            if (usuarioPorEmail != null || usuarioPorNome != null)
+            if (usuarioPorEmail == null) 
             {
-                _notificador.Handle(new Notificacao("Usuário ja cadastrado!"));
+                var result = await _userManager.CreateAsync(user, registerUser.Password);
+
+                if (!result.Succeeded)
+                {
+                    _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
+                    return CustomResponse();
+                }
+
+                await _signInManager.SignInAsync(user, false);
+                return CustomResponse(new { token = await GerarJwt(registerUser.Email) });
+            }
+
+            var claims = await _userManager.GetClaimsAsync(usuarioPorEmail);
+            var systemClaims = claims.FirstOrDefault(c => 
+                c.Type == "permission" && 
+                c.Value.StartsWith($"{registerUser.System}"));
+
+            if(systemClaims != null)
+            {
+                _notificador.Handle(new Notificacao("O usuário ja tem acesso a esse sistema!"));
                 return CustomResponse();
             }
 
-            var result = await _userManager.CreateAsync(user, registerUser.Password);
+            var permissions = ResolvePermissions(registerUser.System, registerUser.Profile);
 
-            if (!result.Succeeded)
+            if (permissions == null) 
             {
-                _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
+                _notificador.Handle(new Notificacao("Falha ao adicionar as permissões!"));
+                return CustomResponse();
+            }   
+
+            var claimsToAdd = new List<Claim>();
+            foreach (var permission in permissions)
+            {
+                claimsToAdd.Add(new Claim("permission", permission));
+            }
+
+            var resultAddClaims = await _userManager.AddClaimsAsync(usuarioPorEmail, claimsToAdd);
+            if(!resultAddClaims.Succeeded)
+            {
+                _notificador.Handle(new Notificacao("Falha ao salvar as permissões!"));
                 return CustomResponse();
             }
 
             await _signInManager.SignInAsync(user, false);
-            return CustomResponse(new { token = await GerarJwt(registerUser.Email) });
+            return CustomResponse(new 
+            { 
+                token = await GerarJwt(usuarioPorEmail.Email) 
+            });
 
+
+        }
+
+        private IEnumerable<string>? ResolvePermissions(string system, string profile)
+        {
+            system = system.ToUpper();
+            profile = profile.ToUpper();
+
+            return (system, profile) switch
+            {
+                ("FINANCEIRO", "USUARIO") => new[]
+                {
+                    "FINANCEIRO:TRANSACAO_LISTAR",
+                    "FINANCEIRO:TRANSACAO_CRIAR",
+                    "FINANCEIRO:TRANSACAO_EXCLUIR",
+                    "FINANCEIRO:TRANSACAO_EDITAR",
+                    "FINANCEIRO:CATEGORIA_LISTAR",
+                    "FINANCEIRO:CATEGORIA_CRIAR",
+                    "FINANCEIRO:CATEGORIA_EXCLUIR",
+                },
+
+                _ => null
+            };
         }
 
         [HttpPost("login")]
