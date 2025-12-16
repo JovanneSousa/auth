@@ -35,7 +35,6 @@ namespace fin_api.Controllers
         [HttpPost("registrar")]
         public async Task<ActionResult> Registrar(RegisterUserViewModel registerUser)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
             var user = new IdentityUser
             {
                 UserName = registerUser.Nome + "-" + Guid.NewGuid().ToString(),
@@ -46,17 +45,23 @@ namespace fin_api.Controllers
             var usuarioPorEmail = await _userManager.FindByEmailAsync(registerUser.Email);
             var usuarioPorNome = await _userManager.FindByNameAsync(registerUser.Nome);
 
-            if (usuarioPorEmail != null || usuarioPorNome != null) return Problem("Usuário já cadastrado");
+            if (usuarioPorEmail != null || usuarioPorNome != null)
+            {
+                _notificador.Handle(new Notificacao("Usuário ja cadastrado!"));
+                return CustomResponse();
+            }
 
             var result = await _userManager.CreateAsync(user, registerUser.Password);
 
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                await _signInManager.SignInAsync(user, false);
-                return Ok(new { token = await GerarJwt(registerUser.Email) });
+                _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
+                return CustomResponse();
             }
 
-            return Problem("Falha ao registrar o usuário");
+            await _signInManager.SignInAsync(user, false);
+            return CustomResponse(new { token = await GerarJwt(registerUser.Email) });
+
         }
 
         [HttpPost("login")]
@@ -90,44 +95,68 @@ namespace fin_api.Controllers
         private async Task<LoginResponseViewModel> GerarJwt(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            var claims = await _userManager.GetClaimsAsync(user);
-            var userRoles = await _userManager.GetRolesAsync(user);
-            claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
-            foreach (var userRole in userRoles)
+
+            var claims = await ObterClaimsUsuarioAsync(user);
+            var token = GerarToken(claims);
+
+            return MontarLoginResponse(user, token, claims);
+        }
+
+        private async Task<List<Claim>> ObterClaimsUsuarioAsync(IdentityUser? user)
+        {
+            var claims = new List<Claim>
             {
-                claims.Add(new Claim("role", userRole));
-            }
+                new Claim(ClaimTypes.NameIdentifier, user.Id)
+            };
 
-            var identityClaims = new ClaimsIdentity();
-            identityClaims.AddClaims(claims);
+            claims.AddRange(await _userManager.GetClaimsAsync(user));
 
+            var roles = await _userManager.GetRolesAsync(user);
+            claims.AddRange(roles.Select(role => new Claim("role", role)));
 
+            return claims;
+        }
+
+        private string GerarToken(IEnumerable<Claim> claims)
+        {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_jwtSettings.Segredo);
 
-            var token = tokenHandler.CreateToken(new SecurityTokenDescriptor
+            var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
                 Issuer = _jwtSettings.Emissor,
                 Audience = _jwtSettings.Audiencia,
                 Expires = DateTime.UtcNow.AddHours(_jwtSettings.ExpiracaoHoras),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            });
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key),
+                    SecurityAlgorithms.HmacSha256Signature)
+            };
 
-            var encodedToken = tokenHandler.WriteToken(token);
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
+        }
 
-            var response = new LoginResponseViewModel
+        private LoginResponseViewModel MontarLoginResponse(IdentityUser user, string token, IEnumerable<Claim> claims)
+        {
+            return new LoginResponseViewModel
             {
-                AccessToken = encodedToken,
-                ExpiresIn = TimeSpan.FromHours(_jwtSettings.ExpiracaoHoras).TotalSeconds,
+                AccessToken = token,
+                ExpiresIn = TimeSpan
+            .FromHours(_jwtSettings.ExpiracaoHoras)
+            .TotalSeconds,
+
                 UserToken = new UserTokenViewModel
                 {
                     Id = user.Id,
-                    Name = user.UserName.Split("-")[0],
-                    Claims = claims.Select(c => new ClaimViewModel { Type = c.Type, Value = c.Value }).ToList()
+                    Name = user.UserName.Split('-')[0],
+                    Claims = claims.Select(c => new ClaimViewModel
+                    {
+                        Type = c.Type,
+                        Value = c.Value
+                    }).ToList()
                 }
             };
-            return response;
         }
     }
 }
