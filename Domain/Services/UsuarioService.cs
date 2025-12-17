@@ -1,6 +1,7 @@
-﻿using auth.Interfaces;
-using auth.Models;
-using auth.Repositories;
+﻿using auth.Domain.Entities;
+using auth.Domain.Interfaces;
+using auth.DTOs;
+using auth.Infra.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -8,7 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace auth.Service;
+namespace auth.Domain.Services;
 
 public class UsuarioService : IUsuarioService
 {

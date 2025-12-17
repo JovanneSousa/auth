@@ -1,4 +1,4 @@
-﻿namespace auth.Models;
+﻿namespace auth.Domain.Entities;
 
 public class Notificacao
 {

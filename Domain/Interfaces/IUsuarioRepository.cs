@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
-namespace auth.Repositories;
+namespace auth.Domain.Interfaces;
 
 public interface IUsuarioRepository
 {

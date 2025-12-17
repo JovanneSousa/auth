@@ -1,7 +1,7 @@
 ﻿using auth.Controllers;
-using auth.Interfaces;
-using auth.Models;
-using auth.Service;
+using auth.Domain.Interfaces;
+using auth.DTOs;
+using auth.Infra.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;

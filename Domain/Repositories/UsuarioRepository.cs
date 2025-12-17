@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using auth.Domain.Interfaces;
+using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
-namespace auth.Repositories;
+namespace auth.Domain.Repositories;
 
 public class UsuarioRepository : IUsuarioRepository
 {

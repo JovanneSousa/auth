@@ -1,4 +1,4 @@
-﻿namespace auth.Models
+﻿namespace auth.Infra.Identity
 {
     public class JwtSettings
     {

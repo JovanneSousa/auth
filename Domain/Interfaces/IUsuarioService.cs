@@ -1,8 +1,6 @@
-﻿using auth.Models;
-using Microsoft.AspNetCore.Identity;
-using System.Security.Claims;
+﻿using auth.DTOs;
 
-namespace auth.Service;
+namespace auth.Domain.Interfaces;
 
 public interface IUsuarioService
 {

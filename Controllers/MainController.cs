@@ -1,5 +1,5 @@
-﻿using auth.Interfaces;
-using auth.Models;
+﻿using auth.Domain.Entities;
+using auth.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 namespace auth.Controllers;

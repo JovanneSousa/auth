@@ -1,4 +1,6 @@
-﻿namespace auth.Models;
+﻿using auth.Domain.Entities;
+
+namespace auth.DTOs;
 
 public class LoginResponseViewModel
 {

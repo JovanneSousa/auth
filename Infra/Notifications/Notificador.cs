@@ -1,6 +1,7 @@
-﻿using auth.Interfaces;
+﻿using auth.Domain.Entities;
+using auth.Domain.Interfaces;
 
-namespace auth.Models;
+namespace auth.Infra.Notifications;
 
 public class Notificador : INotificador
 {

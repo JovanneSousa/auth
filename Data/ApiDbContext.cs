@@ -1,7 +1,5 @@
-﻿using auth.Models;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 
 namespace auth.Data
 {
@@ -10,6 +8,5 @@ namespace auth.Data
         public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)
         {
         }
-
     }
 }

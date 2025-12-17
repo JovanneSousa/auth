@@ -1,7 +1,7 @@
-﻿using auth.Interfaces;
-using auth.Models;
-using auth.Repositories;
-using auth.Service;
+﻿using auth.Domain.Interfaces;
+using auth.Domain.Repositories;
+using auth.Domain.Services;
+using auth.Infra.Notifications;
 
 namespace auth.Configuration;
 
