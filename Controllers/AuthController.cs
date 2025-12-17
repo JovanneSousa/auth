@@ -35,9 +35,7 @@ namespace fin_api.Controllers
             CustomResponse(new { token = await _usuarioService.LogarUsuarioAsync(loginUser) });
 
         [HttpGet("wake-up")]
-        public ActionResult WakeUp()
-        {
-            return Ok("API is awake!");
-        } 
+        public ActionResult WakeUp() =>
+            CustomResponse("A api está awake");
     }
 }
