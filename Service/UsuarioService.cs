@@ -2,6 +2,7 @@
 using auth.Models;
 using auth.Repositories;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -19,13 +20,13 @@ public class UsuarioService : IUsuarioService
     public UsuarioService(
         IUsuarioRepository usuarioRepository, 
         INotificador notificador,
-        JwtSettings jwtSettings,
+        IOptions<JwtSettings> jwtSettings,
         SignInManager<IdentityUser> signInManager
         )
     {
         _usuarioRepository = usuarioRepository;
         _notificador = notificador;
-        _jwtSettings = jwtSettings;
+        _jwtSettings = jwtSettings.Value;
         _signInManager = signInManager;
     }
 

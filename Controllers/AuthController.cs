@@ -16,9 +16,6 @@ namespace fin_api.Controllers
     [Route("api/auth")]
     public class AuthController : MainController
     {
-        private readonly SignInManager<IdentityUser> _signInManager;
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly JwtSettings _jwtSettings;
         private readonly IUsuarioService _usuarioService;
 
 
@@ -31,9 +28,6 @@ namespace fin_api.Controllers
             IUsuarioService usuarioService
             ) : base(notificador)
         {
-            _jwtSettings = jwtSettings.Value;
-            _signInManager = signInManager;
-            _userManager = userManager;
             _usuarioService = usuarioService;
         }
 
