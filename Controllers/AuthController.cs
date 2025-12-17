@@ -50,75 +50,38 @@ namespace fin_api.Controllers
 
                 if (!result.Succeeded)
                 {
+
+                    foreach(var error in result.Errors)
+                    {
+                        _notificador.Handle(new Notificacao(error.Description));
+                    }
                     _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
                     return CustomResponse();
                 }
+
+                var resultSalvaClaim = await SalvaUserClaims(user, registerUser);
+                if (!resultSalvaClaim) return CustomResponse();
 
                 await _signInManager.SignInAsync(user, false);
                 return CustomResponse(new { token = await GerarJwt(registerUser.Email) });
             }
 
-            var claims = await _userManager.GetClaimsAsync(usuarioPorEmail);
-            var systemClaims = claims.FirstOrDefault(c => 
-                c.Type == "permission" && 
-                c.Value.StartsWith($"{registerUser.System}"));
-
-            if(systemClaims != null)
+            var executaLogin = 
+                await _signInManager.PasswordSignInAsync(usuarioPorEmail.UserName, registerUser.Password, false, true);
+            if(!executaLogin.Succeeded)
             {
-                _notificador.Handle(new Notificacao("O usuário ja tem acesso a esse sistema!"));
+                _notificador.Handle(new Notificacao("A senha deve ser a mesma do outro sistema para a liberação de permissão!"));
                 return CustomResponse();
             }
 
-            var permissions = ResolvePermissions(registerUser.System, registerUser.Profile);
-
-            if (permissions == null) 
-            {
-                _notificador.Handle(new Notificacao("Falha ao adicionar as permissões!"));
-                return CustomResponse();
-            }   
-
-            var claimsToAdd = new List<Claim>();
-            foreach (var permission in permissions)
-            {
-                claimsToAdd.Add(new Claim("permission", permission));
-            }
-
-            var resultAddClaims = await _userManager.AddClaimsAsync(usuarioPorEmail, claimsToAdd);
-            if(!resultAddClaims.Succeeded)
-            {
-                _notificador.Handle(new Notificacao("Falha ao salvar as permissões!"));
-                return CustomResponse();
-            }
+            var salvaClaims = await SalvaUserClaims(usuarioPorEmail, registerUser);
+            if(!salvaClaims) return CustomResponse();
 
             await _signInManager.SignInAsync(user, false);
             return CustomResponse(new 
             { 
-                token = await GerarJwt(usuarioPorEmail.Email) 
+                token = await GerarJwt(user.Email) 
             });
-
-
-        }
-
-        private IEnumerable<string>? ResolvePermissions(string system, string profile)
-        {
-            system = system.ToUpper();
-            profile = profile.ToUpper();
-
-            return (system, profile) switch
-            {
-                ("FINANCEIRO", "USUARIO") => new[]
-                {
-                    "FINANCEIRO:TRANSACAO_LISTAR",
-                    "FINANCEIRO:TRANSACAO_CRIAR",
-                    "FINANCEIRO:TRANSACAO_EXCLUIR",
-                    "FINANCEIRO:TRANSACAO_EDITAR",
-                    "FINANCEIRO:CATEGORIA_LISTAR",
-                    "FINANCEIRO:CATEGORIA_CRIAR",
-                    "FINANCEIRO:CATEGORIA_EXCLUIR",
-                },
-
-                _ => null
-            };
         }
 
         [HttpPost("login")]
@@ -149,6 +112,73 @@ namespace fin_api.Controllers
             return Ok("API is awake!");
         }
 
+
+        private async Task<bool> SalvaUserClaims(IdentityUser user, RegisterUserViewModel registerUser)
+        {
+            var claimsToAdd = await GeraListaDeClaims(user, registerUser);
+            if (claimsToAdd == null) return false;
+
+            var resultAddClaims = await _userManager.AddClaimsAsync(user, claimsToAdd);
+            if(!resultAddClaims.Succeeded)
+            {
+                _notificador.Handle(new Notificacao("Falha ao salvar as permissões!"));
+                return false;
+            }
+            return true;
+        }
+
+        private async Task<List<Claim>?> GeraListaDeClaims(IdentityUser user, RegisterUserViewModel registerUser)
+        {
+            var claims = await _userManager.GetClaimsAsync(user);
+            var systemClaims = claims.FirstOrDefault(c =>
+                c.Type == "permission" &&
+                c.Value.StartsWith($"{registerUser.System.ToUpper()}"));
+
+            if (systemClaims != null)
+            {
+                _notificador.Handle(new Notificacao("O usuário ja tem acesso a esse sistema!"));
+                return null;
+            }
+
+            var permissions = ResolvePermissions(registerUser.System, registerUser.Profile);
+
+            if (permissions == null)
+            {
+                _notificador.Handle(new Notificacao("Falha ao adicionar as permissões!"));
+                return null;
+            }
+
+            var claimsToAdd = new List<Claim>();
+            foreach (var permission in permissions)
+            {
+                claimsToAdd.Add(new Claim("permission", permission));
+            }
+
+            return claimsToAdd;
+        }
+
+        private IEnumerable<string>? ResolvePermissions(string system, string profile)
+        {
+            system = system.ToUpper();
+            profile = profile.ToUpper();
+
+            return (system, profile) switch
+            {
+                ("FINANCEIRO", "USUARIO") => new[]
+                {
+                    "FINANCEIRO:TRANSACAO_LISTAR",
+                    "FINANCEIRO:TRANSACAO_CRIAR",
+                    "FINANCEIRO:TRANSACAO_EXCLUIR",
+                    "FINANCEIRO:TRANSACAO_EDITAR",
+                    "FINANCEIRO:CATEGORIA_LISTAR",
+                    "FINANCEIRO:CATEGORIA_CRIAR",
+                    "FINANCEIRO:CATEGORIA_EXCLUIR",
+                },
+
+                _ => null
+            };
+        }
+        
         private async Task<LoginResponseViewModel> GerarJwt(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
