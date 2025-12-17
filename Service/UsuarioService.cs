@@ -47,10 +47,6 @@ public class UsuarioService : IUsuarioService
 
             if (!result.Succeeded)
             {
-                foreach (var error in result.Errors)
-                {
-                    _notificador.Handle(new Notificacao(error.Description));
-                }
                 _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
                 return null;
             }
