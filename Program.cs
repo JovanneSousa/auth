@@ -9,6 +9,7 @@ builder
     .AddCorsConfig()
     .AddIdentityConfig()
     .AddDbContextConfig()
+    .AddPermissionConfig()
     .AddDiConfig();
 
 builder.Services.AddEndpointsApiExplorer();

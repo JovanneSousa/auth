@@ -17,14 +17,17 @@ public class UsuarioService : IUsuarioService
     private readonly INotificador _notificador;
     private readonly JwtSettings _jwtSettings;
     private readonly SignInManager<IdentityUser> _signInManager;
+    private readonly PermissionModel _permissions;
 
     public UsuarioService(
         IUsuarioRepository usuarioRepository, 
         INotificador notificador,
         IOptions<JwtSettings> jwtSettings,
-        SignInManager<IdentityUser> signInManager
+        SignInManager<IdentityUser> signInManager,
+        PermissionModel permissions
         )
     {
+        _permissions = permissions;
         _usuarioRepository = usuarioRepository;
         _notificador = notificador;
         _jwtSettings = jwtSettings.Value;
@@ -132,47 +135,28 @@ public class UsuarioService : IUsuarioService
         }
 
         var permissions = ResolvePermissions(registerUser.System, registerUser.Profile);
+        if (permissions == null) return null;
 
-        if (permissions == null)
-        {
-            _notificador.Handle(new Notificacao("Falha ao adicionar as permissões!"));
-            return null;
-        }
-
-        var claimsToAdd = new List<Claim>();
-        foreach (var permission in permissions)
-        {
-            claimsToAdd.Add(new Claim("permission", permission));
-        }
-
-        return claimsToAdd;
+        return permissions.Select(p => new Claim("permission", p))
+            .ToList();
     }
     private IEnumerable<string>? ResolvePermissions(string system, string profile)
     {
         system = system.ToUpper();
         profile = profile.ToUpper();
 
-        return (system, profile) switch
+        if (!_permissions.Systems.TryGetValue(system, out var profiles))
         {
-            ("FINANCEIRO", "USUARIO") => new[]
-            {
-                    "FIN:TRN_LER",
-                    "FIN:TRN:CRIAR",
-                    "FIN:TRN_EXCLUIR",
-                    "FIN:TRN_EDITAR",
-                    "FIN:CTG_LISTAR",
-                    "FIN:CTG_CRIAR",
-                    "FIN:CTG_EXCLUIR",
-                },
+            _notificador.Handle(new Notificacao("Sistema não encontrado!"));
+            return null;
+        }
+        if (!profiles.TryGetValue(profile, out var permissions))
+        {
+            _notificador.Handle(new Notificacao("Permissões não encontradas para esse perfil"));
+            return null;
+        }
 
-            ("EFOOD", "USUARIO") => new[]
-       {
-                    "EFOOD:RES_LISTAR",
-                    "EFOOD:COM_LISTAR",
-                },
-
-            _ => null
-        };
+        return permissions;
     }
     private async Task<LoginResponseViewModel> GerarJwt(IdentityUser user)
     {
