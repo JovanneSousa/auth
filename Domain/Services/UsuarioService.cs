@@ -156,13 +156,19 @@ public class UsuarioService : IUsuarioService
         {
             ("FINANCEIRO", "USUARIO") => new[]
             {
-                    "FINANCEIRO:TRANSACAO_LISTAR",
-                    "FINANCEIRO:TRANSACAO_CRIAR",
-                    "FINANCEIRO:TRANSACAO_EXCLUIR",
-                    "FINANCEIRO:TRANSACAO_EDITAR",
-                    "FINANCEIRO:CATEGORIA_LISTAR",
-                    "FINANCEIRO:CATEGORIA_CRIAR",
-                    "FINANCEIRO:CATEGORIA_EXCLUIR",
+                    "FIN:TRN_LER",
+                    "FIN:TRN:CRIAR",
+                    "FIN:TRN_EXCLUIR",
+                    "FIN:TRB_EDITAR",
+                    "FIN:CTG_LISTAR",
+                    "FIN:CTG_CRIAR",
+                    "FIN:CTG_EXCLUIR",
+                },
+
+            ("EFOOD", "USUARIO") => new[]
+       {
+                    "EFOOD:RES_LISTAR",
+                    "EFOOD:COM_LISTAR",
                 },
 
             _ => null
