@@ -4,7 +4,9 @@ public static class CorsConfig
 {
     public static WebApplicationBuilder AddCorsConfig(this WebApplicationBuilder builder)
     {
-        var allowedOrigin = builder.Configuration["MEU_APP"];
+        var allowedOrigin = builder.Configuration
+            .GetSection("MEU_APP")
+            .Get<string[]>();
 
         builder.Services.AddCors(options =>
         {
