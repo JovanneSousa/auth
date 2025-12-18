@@ -159,7 +159,7 @@ public class UsuarioService : IUsuarioService
                     "FIN:TRN_LER",
                     "FIN:TRN:CRIAR",
                     "FIN:TRN_EXCLUIR",
-                    "FIN:TRB_EDITAR",
+                    "FIN:TRN_EDITAR",
                     "FIN:CTG_LISTAR",
                     "FIN:CTG_CRIAR",
                     "FIN:CTG_EXCLUIR",
