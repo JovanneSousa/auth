@@ -85,24 +85,25 @@ public class UsuarioService : IUsuarioService
         };
 
         var claims = await _usuarioRepository.ObterClaimsAsync(user);
-        var hasPermission = claims.Any(c =>
-            c.Type == "permission" &&
-            c.Value.StartsWith(loginUser.System.ToUpper())
-            );
-        if(!hasPermission)
-        {
-            _notificador.Handle(new Notificacao("Usuário não tem permissão nesse sistema!"));
-            return null;
-        }
 
         var result = await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true);
-
         if (!result.Succeeded)
         {
             _notificador.Handle(new Notificacao("usuário ou senha incorretos!"));
             return null;
         }
 
+        var hasPermission = claims.Any(c =>
+            c.Type == "permission" &&
+            c.Value.StartsWith(loginUser.System.ToUpper())
+            );
+        if (!hasPermission)
+        {
+            _notificador.Handle(new Notificacao("Usuário não tem permissão nesse sistema!"));
+            return null;
+        }
+
+        await _signInManager.SignInAsync(user, false);
         return await GerarJwt(user);
     }
 

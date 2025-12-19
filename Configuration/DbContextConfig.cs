@@ -9,8 +9,17 @@ public static class DbContextConfig
     {
         builder.Services.AddDbContext<ApiDbContext>(o =>
         {
-            var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
-            o.UseNpgsql(connectionString);
+        var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+
+        o.UseNpgsql(connectionString,
+            npgsqlOptions =>
+            {
+                npgsqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(5),
+                    errorCodesToAdd: new[] { "57P03" }
+                    );
+            });
         });
 
         return builder;
