@@ -9,9 +9,12 @@ public static class DbContextConfig
     {
         builder.Services.AddDbContext<ApiDbContext>(o =>
         {
-        var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-        o.UseNpgsql(connectionString,
+            if(string.IsNullOrEmpty(connectionString))
+                throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+            o.UseNpgsql(connectionString,
             npgsqlOptions =>
             {
                 npgsqlOptions.EnableRetryOnFailure(
