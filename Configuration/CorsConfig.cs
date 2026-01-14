@@ -6,7 +6,12 @@ public static class CorsConfig
     {
         var allowedOrigin = builder.Configuration
             .GetSection("MEU_APP")
-            .Get<string[]>();
+            .GetChildren()
+            .Select(x => x.Value)
+            .ToArray();
+
+        if (allowedOrigin.Length == 0)
+            throw new InvalidOperationException("nenhuma origem configurada em 'MEU_APP'.");
 
         builder.Services.AddCors(options =>
         {
