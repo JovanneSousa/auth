@@ -13,11 +13,8 @@ namespace auth.Configuration
         {
             builder.Services.AddIdentity<IdentityUser, IdentityRole>()
                 .AddRoles<IdentityRole>()
-                .AddEntityFrameworkStores<ApiDbContext>();
-
-            // Pegando o token e gerando chave encodada
-            builder.Services.Configure<JwtSettings>(
-                builder.Configuration.GetSection("JwtSettings"));
+                .AddEntityFrameworkStores<ApiDbContext>()
+                .AddDefaultTokenProviders();
 
             var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
             if (string.IsNullOrEmpty(jwtSettings?.Segredo))

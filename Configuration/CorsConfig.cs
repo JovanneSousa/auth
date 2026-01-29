@@ -5,10 +5,8 @@ public static class CorsConfig
     public static WebApplicationBuilder AddCorsConfig(this WebApplicationBuilder builder)
     {
         var allowedOrigin = builder.Configuration
-            .GetSection("MEU_APP")
-            .GetChildren()
-            .Select(x => x.Value)
-            .ToArray();
+            .GetSection("FrontEndSettings:AllowedApps")
+            .Get<string[]>();
 
         if (allowedOrigin.Length == 0)
             throw new InvalidOperationException("nenhuma origem configurada em 'MEU_APP'.");

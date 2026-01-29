@@ -2,7 +2,6 @@
 using auth.Domain.Interfaces;
 using auth.DTOs;
 using auth.Infra.Identity;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 namespace fin_api.Controllers
@@ -16,9 +15,7 @@ namespace fin_api.Controllers
 
         public AuthController
             (
-            SignInManager<IdentityUser> signInManager,
-            UserManager<IdentityUser> userManager,
-            IOptions<JwtSettings> jwtSettings, 
+            IOptions<JwtSettings> jwtSettings,
             INotificador notificador,
             IUsuarioService usuarioService
             ) : base(notificador)
@@ -37,5 +34,9 @@ namespace fin_api.Controllers
         [HttpGet("wake-up")]
         public ActionResult WakeUp() =>
             CustomResponse("A api está awake");
+
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult<string>> ForgotPassword(string email)
+            => CustomResponse(await _usuarioService.RecuperarSenha(email));
     }
 }

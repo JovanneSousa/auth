@@ -1,11 +1,12 @@
 using auth.Configuration;
+using auth.Infra.MessageBus;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
-builder
+await builder
     .AddCorsConfig()
     .AddIdentityConfig()
     .AddDbContextConfig()
@@ -14,6 +15,8 @@ builder
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.Configure<FrontEndSettings>(
+    builder.Configuration.GetSection("FrontEndSettings"));
 
 var app = builder.Build();
 

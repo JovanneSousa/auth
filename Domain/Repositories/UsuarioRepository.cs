@@ -32,4 +32,9 @@ public class UsuarioRepository : IUsuarioRepository
     public async Task<IList<string>> ObterRolesAsync(IdentityUser user) =>
         await _userManager.GetRolesAsync(user);
 
+    public async Task<string> GeraTokenReset(IdentityUser user) =>
+        await _userManager.GeneratePasswordResetTokenAsync(user);
+
+    public async Task<bool> isEmailConfirmed(IdentityUser user) =>
+        await _userManager.IsEmailConfirmedAsync(user);
 }

@@ -2,6 +2,8 @@
 using auth.Domain.Interfaces;
 using auth.DTOs;
 using auth.Infra.Identity;
+using auth.Infra.MessageBus;
+using Infra.MessageBus;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -18,13 +20,17 @@ public class UsuarioService : IUsuarioService
     private readonly JwtSettings _jwtSettings;
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly PermissionModel _permissions;
+    private readonly IMessageBus _messageBus;
+    private readonly string _frontUrl;
 
     public UsuarioService(
         IUsuarioRepository usuarioRepository, 
         INotificador notificador,
         IOptions<JwtSettings> jwtSettings,
         SignInManager<IdentityUser> signInManager,
-        PermissionModel permissions
+        PermissionModel permissions,
+        IMessageBus messageBus,
+        IOptions<FrontEndSettings> settings
         )
     {
         _permissions = permissions;
@@ -32,6 +38,8 @@ public class UsuarioService : IUsuarioService
         _notificador = notificador;
         _jwtSettings = jwtSettings.Value;
         _signInManager = signInManager;
+        _messageBus = messageBus;
+        _frontUrl = settings.Value.AllowedApps.First();
     }
 
     public async Task<LoginResponseViewModel?> AdicionarUsuarioAsync(RegisterUserViewModel registerUser)
@@ -106,6 +114,42 @@ public class UsuarioService : IUsuarioService
         await _signInManager.SignInAsync(user, false);
         return await GerarJwt(user);
     }
+
+    public async Task<string> RecuperarSenha(string email)
+    {
+        var genericMsg = "Verifique o email para prosseguir";
+        var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(email);
+        if (user == null) return genericMsg;
+
+        var confirmado = await _usuarioRepository.isEmailConfirmed(user);
+        if (!confirmado) return genericMsg;
+
+        var token = await _usuarioRepository.GeraTokenReset(user);
+
+        var encodedEmail = Uri.EscapeDataString(email);
+        var encodedToken = Uri.EscapeDataString(token);
+
+        var resetLink = $"{_frontUrl}/reset-password?email={encodedEmail}&token={encodedToken}";
+
+        await _messageBus.PublishAsync(geraEmailEvent(email, resetLink, user.Id), "email.send");
+        return genericMsg;
+    }
+
+    public EmailEvent geraEmailEvent(string email, string resetLink, string userId)
+        => new EmailEvent
+        {
+            To = email,
+            Type = "RESET",
+            Subject = "Redefinição de senha",
+            Body = $"Clique no link a seguir para redefinir sua senha: {resetLink}",
+            EventId = Guid.NewGuid().ToString(),
+            Metadata = new Metadados
+            {
+                retry = 0,
+                UserId = userId,
+                UserName = email
+            }
+        };
 
     private async Task<bool> SalvaUserClaims(IdentityUser user, RegisterUserViewModel registerUser)
     {

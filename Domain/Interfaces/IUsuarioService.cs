@@ -4,6 +4,7 @@ namespace auth.Domain.Interfaces;
 
 public interface IUsuarioService
 {
-    public Task<LoginResponseViewModel?> AdicionarUsuarioAsync(RegisterUserViewModel registerUser);
-    public Task<LoginResponseViewModel?> LogarUsuarioAsync(LoginUserViewModel loginUser);
+    Task<LoginResponseViewModel?> AdicionarUsuarioAsync(RegisterUserViewModel registerUser);
+    Task<LoginResponseViewModel?> LogarUsuarioAsync(LoginUserViewModel loginUser);
+    Task<string> RecuperarSenha(string email);
 }
