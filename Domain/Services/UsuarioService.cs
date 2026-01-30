@@ -37,7 +37,6 @@ public class UsuarioService : IUsuarioService
         _usuarioRepository = usuarioRepository;
         _notificador = notificador;
         _jwtSettings = jwtSettings.Value;
-        _signInManager = signInManager;
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
     }
@@ -115,7 +114,7 @@ public class UsuarioService : IUsuarioService
         return await GerarJwt(user);
     }
 
-    public async Task<string> RecuperarSenha(string email)
+    public async Task<string> GerarTokenResetSenha(string email)
     {
         var genericMsg = "Verifique o email para prosseguir";
         var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(email);
@@ -264,5 +263,44 @@ public class UsuarioService : IUsuarioService
                 }).ToList()
             }
         };
+    }
+
+    public async Task<bool> ResetarSenha(string email, string token, string password)
+    {
+        var decodedEmail = Uri.UnescapeDataString(email);
+        if (string.IsNullOrWhiteSpace(decodedEmail)) 
+        {
+            _notificador.Handle(new Notificacao("Email inválido"));
+            return false;
+        }
+
+        var decodedToken = Uri.UnescapeDataString(token);
+        if (string.IsNullOrWhiteSpace(decodedToken))
+        {
+            _notificador.Handle(new Notificacao("Token inválido"));
+            return false;
+        }
+
+        if(string.IsNullOrWhiteSpace(password))
+        {
+            _notificador.Handle(new Notificacao("Senha inválida"));
+            return false;
+        }
+
+        var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(decodedEmail);
+        if (user == null) 
+        {
+            _notificador.Handle(new Notificacao("Falha ao atualizar a senha"));
+            return false;
+        }
+        
+        var result = await _usuarioRepository.ResetSenha(user, decodedToken, password);
+        if (!result.Succeeded)
+        {
+            _notificador.Handle(new Notificacao("Falha ao atualizar a senha"));
+            return false;
+        }
+        return true;
+
     }
 }

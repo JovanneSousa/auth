@@ -37,4 +37,7 @@ public class UsuarioRepository : IUsuarioRepository
 
     public async Task<bool> isEmailConfirmed(IdentityUser user) =>
         await _userManager.IsEmailConfirmedAsync(user);
+
+    public async Task<IdentityResult> ResetSenha(IdentityUser user, string token, string password) =>
+        await _userManager.ResetPasswordAsync(user, token, password);
 }

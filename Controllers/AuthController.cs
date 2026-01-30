@@ -24,11 +24,11 @@ namespace fin_api.Controllers
         }
 
         [HttpPost("registrar")]
-        public async Task<ActionResult> Registrar(RegisterUserViewModel registerUser) =>
+        public async Task<ActionResult<LoginResponseViewModel>> Registrar(RegisterUserViewModel registerUser) =>
             CustomResponse(new { token = await _usuarioService.AdicionarUsuarioAsync(registerUser) });
 
         [HttpPost("login")]
-        public async Task<ActionResult> Login(LoginUserViewModel loginUser) =>
+        public async Task<ActionResult<LoginResponseViewModel>> Login(LoginUserViewModel loginUser) =>
             CustomResponse(new { token = await _usuarioService.LogarUsuarioAsync(loginUser) });
 
         [HttpGet("wake-up")]
@@ -37,6 +37,10 @@ namespace fin_api.Controllers
 
         [HttpPost("forgot-password")]
         public async Task<ActionResult<string>> ForgotPassword(string email)
-            => CustomResponse(await _usuarioService.RecuperarSenha(email));
+            => CustomResponse(await _usuarioService.GerarTokenResetSenha(email));
+
+        [HttpPost("nova-senha")]
+        public async Task<ActionResult<bool>> ResetarSenha(string email, string token, string password)
+            => CustomResponse(await _usuarioService.ResetarSenha(email, token, password));
     }
 }
