@@ -17,6 +17,11 @@ public class UsuarioRepository : IUsuarioRepository
         _signInManager = signInManager;
     }
 
+    public async Task<SignInResult> LogarComSenha(string user, string password)
+        => await _signInManager.PasswordSignInAsync(user, password, false, true);
+    public async Task LogarAsync(IdentityUser user)
+        => await _signInManager.SignInAsync(user, false);
+
     public async Task<IdentityResult> AdicionarUsuarioAsync(IdentityUser user, string password) =>
         await _userManager.CreateAsync(user, password);
 

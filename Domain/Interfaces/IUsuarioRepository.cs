@@ -13,4 +13,6 @@ public interface IUsuarioRepository
     Task<string> GeraTokenReset(IdentityUser user);
     Task<bool> isEmailConfirmed(IdentityUser user);
     Task<IdentityResult> ResetSenha(IdentityUser user, string token, string password);
+    Task<SignInResult> LogarComSenha(string user, string password);
+    Task LogarAsync(IdentityUser user);
 }

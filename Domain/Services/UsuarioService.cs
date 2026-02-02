@@ -3,7 +3,6 @@ using auth.Domain.Interfaces;
 using auth.DTOs;
 using auth.Infra.Identity;
 using auth.Infra.MessageBus;
-using Infra.MessageBus;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -18,7 +17,6 @@ public class UsuarioService : IUsuarioService
     private readonly IUsuarioRepository _usuarioRepository;
     private readonly INotificador _notificador;
     private readonly JwtSettings _jwtSettings;
-    private readonly SignInManager<IdentityUser> _signInManager;
     private readonly PermissionModel _permissions;
     private readonly IMessageBus _messageBus;
     private readonly string _frontUrl;
@@ -27,7 +25,6 @@ public class UsuarioService : IUsuarioService
         IUsuarioRepository usuarioRepository, 
         INotificador notificador,
         IOptions<JwtSettings> jwtSettings,
-        SignInManager<IdentityUser> signInManager,
         PermissionModel permissions,
         IMessageBus messageBus,
         IOptions<FrontEndSettings> settings
@@ -64,12 +61,12 @@ public class UsuarioService : IUsuarioService
 
             if (!await SalvaUserClaims(user, registerUser)) return null;
 
-            await _signInManager.SignInAsync(user, false);
+            await _usuarioRepository.LogarAsync(user);
             return await GerarJwt(user);
         }
 
         var executaLogin =
-            await _signInManager.PasswordSignInAsync(usuarioPorEmail.UserName, registerUser.Password, false, true);
+            await _usuarioRepository.LogarComSenha(usuarioPorEmail.UserName, registerUser.Password);
         if (!executaLogin.Succeeded)
         {
             _notificador.Handle(new Notificacao("A senha deve ser a mesma do outro sistema para a liberação de permissão!"));
@@ -78,7 +75,7 @@ public class UsuarioService : IUsuarioService
 
         if (!await SalvaUserClaims(usuarioPorEmail, registerUser)) return null;
 
-        await _signInManager.SignInAsync(usuarioPorEmail, false);
+        await _usuarioRepository.LogarAsync(usuarioPorEmail);
         return await GerarJwt(usuarioPorEmail);
     }
 
@@ -93,7 +90,7 @@ public class UsuarioService : IUsuarioService
 
         var claims = await _usuarioRepository.ObterClaimsAsync(user);
 
-        var result = await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true);
+        var result = await _usuarioRepository.LogarComSenha(user.UserName, loginUser.Password);
         if (!result.Succeeded)
         {
             _notificador.Handle(new Notificacao("usuário ou senha incorretos!"));
@@ -110,7 +107,7 @@ public class UsuarioService : IUsuarioService
             return null;
         }
 
-        await _signInManager.SignInAsync(user, false);
+        await _usuarioRepository.LogarAsync(user);
         return await GerarJwt(user);
     }
 

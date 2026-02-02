@@ -16,6 +16,9 @@ namespace auth.Configuration
                 .AddEntityFrameworkStores<ApiDbContext>()
                 .AddDefaultTokenProviders();
 
+            builder.Services.Configure<JwtSettings>(
+                builder.Configuration.GetSection("JwtSettings"));
+
             var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
             if (string.IsNullOrEmpty(jwtSettings?.Segredo))
                 throw new InvalidOperationException("Segredo JWT não configurado.");
