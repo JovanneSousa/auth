@@ -36,7 +36,7 @@ namespace fin_api.Controllers
             CustomResponse("A api está awake");
 
         [HttpPost("forgot-password")]
-        public async Task<ActionResult<string>> ForgotPassword(string email)
-            => CustomResponse(await _usuarioService.RecuperarSenha(email));
+        public async Task<ActionResult<string>> ForgotPassword(ForgotPassViewModel data)
+            => CustomResponse(await _usuarioService.RecuperarSenha(data));
     }
 }

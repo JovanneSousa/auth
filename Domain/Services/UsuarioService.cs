@@ -115,10 +115,10 @@ public class UsuarioService : IUsuarioService
         return await GerarJwt(user);
     }
 
-    public async Task<string> RecuperarSenha(string email)
+    public async Task<string> RecuperarSenha(ForgotPassViewModel data)
     {
         var genericMsg = "Verifique o email para prosseguir";
-        var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(email);
+        var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(data.email);
         if (user == null) return genericMsg;
 
         var confirmado = await _usuarioRepository.isEmailConfirmed(user);
@@ -126,12 +126,12 @@ public class UsuarioService : IUsuarioService
 
         var token = await _usuarioRepository.GeraTokenReset(user);
 
-        var encodedEmail = Uri.EscapeDataString(email);
+        var encodedEmail = Uri.EscapeDataString(data.email);
         var encodedToken = Uri.EscapeDataString(token);
 
         var resetLink = $"{_frontUrl}/reset-password?email={encodedEmail}&token={encodedToken}";
 
-        await _messageBus.PublishAsync(geraEmailEvent(email, resetLink, user.Id), "email.send");
+        await _messageBus.PublishAsync(geraEmailEvent(data.email, resetLink, user.Id), "email.send");
         return genericMsg;
     }
 
