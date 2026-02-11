@@ -31,9 +31,9 @@ namespace fin_api.Controllers
         public async Task<ActionResult> Login(LoginUserViewModel loginUser) =>
             CustomResponse(new { token = await _usuarioService.LogarUsuarioAsync(loginUser) });
 
-        [HttpGet("wake-up")]
+        [HttpGet("health")]
         public ActionResult WakeUp() =>
-            CustomResponse("A api está awake");
+            Ok();
 
         [HttpPost("forgot-password")]
         public async Task<ActionResult<string>> ForgotPassword(ForgotPassViewModel data)
