@@ -12,4 +12,5 @@ public interface IUsuarioRepository
     Task<IList<string>> ObterRolesAsync(IdentityUser user);
     Task<string> GeraTokenReset(IdentityUser user);
     Task<bool> isEmailConfirmed(IdentityUser user);
+    Task<IdentityResult> ResetarSenha(IdentityUser user, string token, string newPassword);
 }

@@ -3,7 +3,6 @@ using auth.Domain.Interfaces;
 using auth.DTOs;
 using auth.Infra.Identity;
 using auth.Infra.MessageBus;
-using Infra.MessageBus;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -115,27 +114,53 @@ public class UsuarioService : IUsuarioService
         return await GerarJwt(user);
     }
 
-    public async Task<string> RecuperarSenha(ForgotPassViewModel data)
+    public async Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data)
     {
-        var genericMsg = "Verifique o email para prosseguir";
-        var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(data.email);
-        if (user == null) return genericMsg;
+        var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(data.Email);
+        if (user == null) return true;
 
         var confirmado = await _usuarioRepository.isEmailConfirmed(user);
-        if (!confirmado) return genericMsg;
+        if (!confirmado) return true;
 
         var token = await _usuarioRepository.GeraTokenReset(user);
 
-        var encodedEmail = Uri.EscapeDataString(data.email);
+        var encodedEmail = Uri.EscapeDataString(data.Email);
         var encodedToken = Uri.EscapeDataString(token);
 
-        var resetLink = $"{_frontUrl}/reset-password?email={encodedEmail}&token={encodedToken}";
+        var resetLink = $"{_frontUrl}/auth?email={encodedEmail}&token={encodedToken}";
 
-        await _messageBus.PublishAsync(geraEmailEvent(data.email, resetLink, user.Id), "email.send");
-        return genericMsg;
+        await _messageBus.PublishAsync(geraEmailEvent(data.Email, resetLink, user.Id), "email.send");
+        return true;
     }
 
-    public EmailEvent geraEmailEvent(string email, string resetLink, string userId)
+    public async Task<bool> RecuperarSenha(ResetPassViewModel data)
+    {
+        if(string.IsNullOrEmpty(data.Email))
+        {
+            _notificador.Handle(new Notificacao("Email inválido!"));
+            return false;
+        }
+        var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(data.Email);
+        if(user == null)
+        {
+            _notificador.Handle(new Notificacao("Usuário não encontrado!"));
+            return false;
+        }
+        if (string.IsNullOrEmpty(data.Password) || string.IsNullOrEmpty(data.Token)) 
+        {
+            _notificador.Handle(new Notificacao("token inválido!"));
+            return false;
+        }
+        var result = await _usuarioRepository.ResetarSenha(user, data.Token, data.Password);
+        if (!result.Succeeded)
+        {
+            _notificador.Handle(new Notificacao("Houve um erro atualizando a senha!"));
+            return false;
+        }
+        return true;
+    }
+
+    private EmailEvent geraEmailEvent(string email, string resetLink, string userId)
         => new EmailEvent
         {
             To = email,
@@ -250,9 +275,8 @@ public class UsuarioService : IUsuarioService
         {
             AccessToken = token,
             ExpiresIn = TimeSpan
-        .FromHours(_jwtSettings.ExpiracaoHoras)
-        .TotalSeconds,
-
+                .FromHours(_jwtSettings.ExpiracaoHoras)
+                .TotalSeconds,
             UserToken = new UserTokenViewModel
             {
                 Id = user.Id,

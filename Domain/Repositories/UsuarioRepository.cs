@@ -7,14 +7,11 @@ namespace auth.Domain.Repositories;
 public class UsuarioRepository : IUsuarioRepository
 {
     private readonly UserManager<IdentityUser> _userManager;
-    private readonly SignInManager<IdentityUser> _signInManager;
     public UsuarioRepository(
-        UserManager<IdentityUser> userManager, 
-        SignInManager<IdentityUser> signInManager
+        UserManager<IdentityUser> userManager
         )
     {
         _userManager = userManager;
-        _signInManager = signInManager;
     }
 
     public async Task<IdentityResult> AdicionarUsuarioAsync(IdentityUser user, string password) =>
@@ -37,4 +34,7 @@ public class UsuarioRepository : IUsuarioRepository
 
     public async Task<bool> isEmailConfirmed(IdentityUser user) =>
         await _userManager.IsEmailConfirmedAsync(user);
+
+    public async Task<IdentityResult> ResetarSenha(IdentityUser user, string token, string newPassword) =>
+        await _userManager.ResetPasswordAsync(user, token, newPassword);
 }

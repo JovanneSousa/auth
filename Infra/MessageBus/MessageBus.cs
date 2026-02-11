@@ -5,14 +5,14 @@ using System.Text.Json;
 
 namespace Infra.MessageBus
 {
-    public sealed class RabbitMqProducer : IMessageBus, IDisposable
+    public sealed class MessageBus : IMessageBus, IDisposable
     {
         private readonly IConnection _connection;
         private readonly IChannel _channel;
         private readonly string _exchangeName;
         private readonly JsonSerializerOptions _jsonOptions;
 
-        public RabbitMqProducer(IConnection connection, IChannel channel, string exchangeName)
+        public MessageBus(IConnection connection, IChannel channel, string exchangeName)
         {
             _exchangeName = exchangeName;
             _connection = connection;
@@ -24,7 +24,7 @@ namespace Infra.MessageBus
             };
         }
 
-        public static async Task<RabbitMqProducer> CreateAsync(
+        public static async Task<MessageBus> CreateAsync(
             string amqpUri, 
             string exchangeName, 
             CancellationToken ct = default
@@ -49,7 +49,7 @@ namespace Infra.MessageBus
                             cancellationToken: ct
                         );
 
-            return new RabbitMqProducer(connection, channel, exchangeName);
+            return new MessageBus(connection, channel, exchangeName);
         }
 
         public async Task PublishAsync<T>(T message, string routingKey) where T : class

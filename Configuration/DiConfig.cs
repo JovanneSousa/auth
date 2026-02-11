@@ -1,7 +1,6 @@
 ﻿using auth.Domain.Interfaces;
 using auth.Domain.Repositories;
 using auth.Domain.Services;
-using auth.Infra.Identity;
 using auth.Infra.MessageBus;
 using auth.Infra.Notifications;
 using Infra.MessageBus;
@@ -14,7 +13,7 @@ public static class DiConfig
         var rabbit = builder.Configuration.GetSection("rabbit").Get<RabbitSettings>();
         if (string.IsNullOrEmpty(rabbit?.Url) || string.IsNullOrEmpty(rabbit.Exchange)) 
             throw new InvalidOperationException("rabbit não configurado");
-        var rabbitProducer = await RabbitMqProducer.CreateAsync(rabbit.Url, rabbit.Exchange);
+        var rabbitProducer = await MessageBus.CreateAsync(rabbit.Url, rabbit.Exchange);
 
         builder.Services.AddScoped<INotificador, Notificador>();
         builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();

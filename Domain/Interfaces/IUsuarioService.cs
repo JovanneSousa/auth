@@ -6,5 +6,6 @@ public interface IUsuarioService
 {
     Task<LoginResponseViewModel?> AdicionarUsuarioAsync(RegisterUserViewModel registerUser);
     Task<LoginResponseViewModel?> LogarUsuarioAsync(LoginUserViewModel loginUser);
-    Task<string> RecuperarSenha(ForgotPassViewModel data);
+    Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data);
+    Task<bool> RecuperarSenha(ResetPassViewModel data);
 }

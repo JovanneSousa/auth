@@ -37,6 +37,10 @@ namespace fin_api.Controllers
 
         [HttpPost("forgot-password")]
         public async Task<ActionResult<string>> ForgotPassword(ForgotPassViewModel data)
+            => CustomResponse(await _usuarioService.GerarTokenResetarSenha(data));
+
+        [HttpPost("reset-pass")]
+        public async Task<ActionResult<string>> ResetPass(ResetPassViewModel data)
             => CustomResponse(await _usuarioService.RecuperarSenha(data));
     }
 }
