@@ -10,10 +10,11 @@ public static class DiConfig
 {
     public static async Task<WebApplicationBuilder> AddDiConfig(this WebApplicationBuilder builder)
     {
+        
         var rabbit = builder.Configuration.GetSection("rabbit").Get<RabbitSettings>();
         if (string.IsNullOrEmpty(rabbit?.Url) || string.IsNullOrEmpty(rabbit.Exchange)) 
             throw new InvalidOperationException("rabbit não configurado");
-        var rabbitProducer = await MessageBus.CreateAsync(rabbit.Url, rabbit.Exchange);
+        var rabbitProducer = await MessageBus.CreateAsync(rabbit.Url);
 
         builder.Services.AddScoped<INotificador, Notificador>();
         builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
