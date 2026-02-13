@@ -11,6 +11,7 @@ await builder
     .AddIdentityConfig()
     .AddDbContextConfig()
     .AddPermissionConfig()
+    .AddSettingsConfig()
     .AddDiConfig();
 
 builder.Services.AddEndpointsApiExplorer();

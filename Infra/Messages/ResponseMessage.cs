@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace auth.Infra.MessageBus
+namespace auth.Infra.Messages
 {
     public class ResponseMessage
     {

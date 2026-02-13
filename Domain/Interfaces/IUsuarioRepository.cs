@@ -13,4 +13,5 @@ public interface IUsuarioRepository
     Task<string> GeraTokenReset(IdentityUser user);
     Task<bool> isEmailConfirmed(IdentityUser user);
     Task<IdentityResult> ResetarSenha(IdentityUser user, string token, string newPassword);
+    Task<IdentityResult> DeleteAsync(IdentityUser usuario);
 }

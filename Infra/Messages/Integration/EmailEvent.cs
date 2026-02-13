@@ -1,6 +1,8 @@
-﻿namespace auth.Domain.Entities
+﻿using auth.Domain.Entities;
+
+namespace auth.Infra.Messages.Integration
 {
-    public class EmailEvent
+    public class EmailIntegrationEvent : IntegrationEvent
     {
         public string EventId { get; set; } = Guid.NewGuid().ToString();
         public string Type {  get; set; }

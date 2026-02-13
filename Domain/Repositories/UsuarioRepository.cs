@@ -37,4 +37,7 @@ public class UsuarioRepository : IUsuarioRepository
 
     public async Task<IdentityResult> ResetarSenha(IdentityUser user, string token, string newPassword) =>
         await _userManager.ResetPasswordAsync(user, token, newPassword);
+
+    public async Task<IdentityResult> DeleteAsync(IdentityUser usuario) =>
+        await _userManager.DeleteAsync(usuario);
 }
