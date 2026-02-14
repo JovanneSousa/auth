@@ -1,0 +1,11 @@
+﻿using auth.Src.DTOs;
+
+namespace auth.Src.Domain.Interfaces;
+
+public interface IUsuarioService
+{
+    Task<bool> AdicionarUsuarioAsync(RegisterUserViewModel registerUser);
+    Task<LoginResponseViewModel?> LogarUsuarioAsync(LoginUserViewModel loginUser);
+    Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data);
+    Task<bool> RecuperarSenha(ResetPassViewModel data);
+}

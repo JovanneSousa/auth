@@ -1,5 +1,5 @@
 using auth.Configuration;
-using auth.Infra.MessageBus;
+using auth.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
