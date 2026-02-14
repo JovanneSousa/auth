@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace auth.Src.Data
+namespace auth.Data
 {
     public class ApiDbContext : IdentityDbContext
     {

@@ -1,4 +1,4 @@
-﻿namespace auth.Src.Domain.Entities
+﻿namespace auth.Domain.Entities
 {
     public class PermissionModel
     {

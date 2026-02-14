@@ -1,4 +1,4 @@
-﻿namespace auth.Src.Configuration;
+﻿namespace auth.Configuration;
 
 public static class CorsConfig
 {

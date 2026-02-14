@@ -2,9 +2,9 @@
 using auth.Domain.Interfaces;
 using auth.DTOs;
 using auth.Infra.Identity;
-using auth.Infra.MessageBus;
-using auth.Infra.Messages;
-using auth.Infra.Messages.Integration;
+using Bus;
+using Messages;
+using Messages.Integration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;

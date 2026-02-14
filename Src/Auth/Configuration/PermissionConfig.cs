@@ -1,7 +1,7 @@
 ﻿using auth.Domain.Entities;
 using System.Text.Json;
 
-namespace auth.Src.Configuration
+namespace auth.Configuration
 {
     public static class PermissionConfig
     {

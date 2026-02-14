@@ -1,3 +1,0 @@
-[submodule "Src/MessageBus"]
-	path = Src/MessageBus
-	url = https://github.com/jovannesousa/MessageBus.git

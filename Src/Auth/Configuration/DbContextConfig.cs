@@ -1,7 +1,7 @@
-﻿using auth.Src.Data;
+﻿using auth.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace auth.Src.Configuration;
+namespace auth.Configuration;
 
 public static class DbContextConfig
 {

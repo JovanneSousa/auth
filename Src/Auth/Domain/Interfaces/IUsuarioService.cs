@@ -1,6 +1,6 @@
-﻿using auth.Src.DTOs;
+﻿using auth.DTOs;
 
-namespace auth.Src.Domain.Interfaces;
+namespace auth.Domain.Interfaces;
 
 public interface IUsuarioService
 {

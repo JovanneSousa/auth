@@ -1,5 +1,5 @@
 ﻿using auth.Data;
-using auth.Src.Infra.Identity;
+using auth.Infra.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;

@@ -1,5 +1,4 @@
 using auth.Configuration;
-using auth.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,10 +13,10 @@ await builder
     .AddSettingsConfig()
     .AddDiConfig();
 
+builder = await builder.AddMessageBus();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.Configure<FrontEndSettings>(
-    builder.Configuration.GetSection("FrontEndSettings"));
 
 var app = builder.Build();
 

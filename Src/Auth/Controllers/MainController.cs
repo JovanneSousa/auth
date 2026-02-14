@@ -1,8 +1,8 @@
 ﻿using auth.Domain.Entities;
-using auth.Src.Domain.Interfaces;
+using auth.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-namespace auth.Src.Controllers;
+namespace auth.Controllers;
 
 [ApiController]
 public abstract class MainController : ControllerBase

@@ -1,9 +1,10 @@
 ﻿using auth.Controllers;
 using auth.Domain.Interfaces;
 using auth.DTOs;
-using auth.Src.Infra.Identity;
+using auth.Infra.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+
 namespace fin_api.Controllers
 {
     [ApiController]

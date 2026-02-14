@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace auth.Src.DTOs
+namespace auth.DTOs
 {
     public class ResetPassViewModel
     {

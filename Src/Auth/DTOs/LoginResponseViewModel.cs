@@ -1,6 +1,6 @@
-﻿using auth.Src.Domain.Entities;
+﻿using auth.Domain.Entities;
 
-namespace auth.Src.DTOs;
+namespace auth.DTOs;
 
 public class LoginResponseViewModel
 {
