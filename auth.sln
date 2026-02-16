@@ -1,15 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.2.11408.102 d18.0
+VisualStudioVersion = 18.2.11408.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "API", "API", "{E023C7DC-576F-4A17-A3C6-7C2F0BC59A7C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{D2BDE900-D93F-489C-B383-E26A8819E05F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "auth", "Src\Auth\auth.csproj", "{1E0E8537-545C-B1B1-7A43-705785F3A211}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageBus", "..\MessageBus\MessageBus.csproj", "{3AB2D876-586D-D55C-23C2-ECED3C030E0A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,17 +17,12 @@ Global
 		{1E0E8537-545C-B1B1-7A43-705785F3A211}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E0E8537-545C-B1B1-7A43-705785F3A211}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1E0E8537-545C-B1B1-7A43-705785F3A211}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3AB2D876-586D-D55C-23C2-ECED3C030E0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3AB2D876-586D-D55C-23C2-ECED3C030E0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3AB2D876-586D-D55C-23C2-ECED3C030E0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3AB2D876-586D-D55C-23C2-ECED3C030E0A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1E0E8537-545C-B1B1-7A43-705785F3A211} = {E023C7DC-576F-4A17-A3C6-7C2F0BC59A7C}
-		{3AB2D876-586D-D55C-23C2-ECED3C030E0A} = {D2BDE900-D93F-489C-B383-E26A8819E05F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5006C618-646A-4160-8B0A-CE1D53CDDCD1}
