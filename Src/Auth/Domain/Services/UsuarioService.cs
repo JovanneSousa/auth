@@ -3,6 +3,7 @@ using auth.Domain.Interfaces;
 using auth.DTOs;
 using auth.Infra.Identity;
 using Bus;
+using FluentValidation.Results;
 using Messages;
 using Messages.Integration;
 using Microsoft.AspNetCore.Identity;
@@ -11,6 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using FV = FluentValidation.Results;
 
 namespace auth.Domain.Services;
 
@@ -48,29 +50,39 @@ public class UsuarioService : IUsuarioService
 
     public async Task<bool> AdicionarUsuarioAsync(RegisterUserViewModel registerUser)
     {
-        var user = new IdentityUser
+        var usuarioExistente = 
+            await _usuarioRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
+
+        IdentityUser user;
+
+        if (usuarioExistente == null)
         {
-            UserName = registerUser.Nome + "-" + Guid.NewGuid().ToString(),
-            Email = registerUser.Email,
-            EmailConfirmed = true
-        };
-
-        var usuarioPorEmail = await _usuarioRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
-
-        if (usuarioPorEmail == null) 
-            return await CriaUserIdentity(user, registerUser.Password, registerUser);
-
-        var executaLogin =
-            await _signInManager.PasswordSignInAsync(usuarioPorEmail.UserName, registerUser.Password, false, true);
-        if (!executaLogin.Succeeded)
+            user = new IdentityUser
+            {
+                UserName = registerUser.Email,
+                Email = registerUser.Email,
+                EmailConfirmed = true
+            };
+            var created = await CriaUserIdentity(user, registerUser.Password, registerUser);
+            if (!created) return false;
+        } else
         {
-            _notificador.Handle(new Notificacao("A senha deve ser a mesma do outro sistema para a liberação de permissão!"));
-            return false;
+            var executaLogin =
+                await _signInManager.PasswordSignInAsync(usuarioExistente.UserName, registerUser.Password, false, true);
+            if (!executaLogin.Succeeded)
+            {
+                _notificador.Handle(new Notificacao("A senha deve ser a mesma do outro sistema para a liberação de permissão!"));
+                return false;
+            }
+
+            user = usuarioExistente;
+
+            if (!await SalvaUserClaims(usuarioExistente, registerUser)) return false;
         }
 
-        if (!await SalvaUserClaims(usuarioPorEmail, registerUser)) return false;
-
-        var usuarioResult = await RegistraUsuario(registerUser);
+        var usuarioRegistrado = await RegistraUsuario(registerUser);
+        if(!usuarioRegistrado.ValidationResult.IsValid || usuarioRegistrado == null) 
+            return false;
         return true;
     }
 
@@ -78,18 +90,41 @@ public class UsuarioService : IUsuarioService
     {
         var usuario = await _usuarioRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
 
-        var usuarioRegistrado = new UsuarioRegistradoIntegrationEvent();
+        var usuarioRegistrado = new UsuarioRegistradoIntegrationEvent
+        {
+            Id = usuario.Id,
+            Nome = registerUser.Nome,
+            Email = usuario.Email
+        };
 
         try
         {
-            return await _messageBus.RequestAsync<UsuarioRegistradoIntegrationEvent, ResponseMessage>(
+            var usuarioResult = await _messageBus.RequestAsync<UsuarioRegistradoIntegrationEvent, ResponseMessage>(
                 usuarioRegistrado, _rabbitSettings.Exchange, "rota"
                 );
+
+            if (!usuarioResult.ValidationResult.IsValid)
+            {
+
+                var errors = usuarioResult.ValidationResult.Errors;
+
+                foreach (var error in errors)
+                    _notificador.Handle(new Notificacao(error.ErrorMessage));
+
+                return usuarioResult;
+            }
+
+            return usuarioResult;
         } catch
         {
-            await _usuarioRepository.DeleteAsync(usuario);
             _notificador.Handle(new Notificacao("Erro ao cadastrar usuário no sistema"));
-            throw;
+            return new ResponseMessage(
+                    new ValidationResult(
+                        [ 
+                            new FV.ValidationFailure("", "Erro de integração") 
+                        ]
+                    )
+                );
         }
     }
 
@@ -103,9 +138,9 @@ public class UsuarioService : IUsuarioService
             return false;
         }
 
-        if (!await SalvaUserClaims(user, registerUser)) return false;
+        if (!await SalvaUserClaims(user, registerUser)) 
+            return false;
 
-        await _signInManager.SignInAsync(user, false);
         return true;
     }
 
