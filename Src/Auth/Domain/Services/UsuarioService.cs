@@ -99,9 +99,8 @@ public class UsuarioService : IUsuarioService
 
         try
         {
-            var usuarioResult = await _messageBus.RequestAsync<UsuarioRegistradoIntegrationEvent, ResponseMessage>(
-                usuarioRegistrado, _rabbitSettings.Exchange, "rota"
-                );
+            var usuarioResult = 
+                await _messageBus.RequestAsync<UsuarioRegistradoIntegrationEvent, ResponseMessage>(usuarioRegistrado);
 
             if (!usuarioResult.ValidationResult.IsValid)
             {
@@ -191,7 +190,7 @@ public class UsuarioService : IUsuarioService
 
         var resetLink = $"{_frontUrl}/auth?email={encodedEmail}&token={encodedToken}";
 
-        await _messageBus.PublishAsync(geraEmailEvent(data.Email, resetLink, user.Id), "email.send", _rabbitSettings.Exchange);
+        await _messageBus.PublishAsync(geraEmailEvent(data.Email, resetLink, user.Id));
         return true;
     }
 
