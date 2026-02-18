@@ -1,4 +1,5 @@
 using auth.Configuration;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +17,12 @@ await builder
 builder = await builder.AddMessageBus();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Auth Api",
+        Version = "v1"
+    }));
 
 var app = builder.Build();
 
