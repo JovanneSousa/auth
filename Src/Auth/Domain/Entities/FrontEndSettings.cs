@@ -1,4 +1,4 @@
-﻿namespace auth.Infra.MessageBus
+﻿namespace auth.Domain.Entities
 {
     public class FrontEndSettings
     {

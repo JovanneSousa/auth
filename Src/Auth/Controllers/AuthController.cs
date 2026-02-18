@@ -4,6 +4,7 @@ using auth.DTOs;
 using auth.Infra.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+
 namespace fin_api.Controllers
 {
     [ApiController]

@@ -2,13 +2,17 @@
 using auth.Domain.Interfaces;
 using auth.DTOs;
 using auth.Infra.Identity;
-using auth.Infra.MessageBus;
+using Bus;
+using FluentValidation.Results;
+using Messages;
+using Messages.Integration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using FV = FluentValidation.Results;
 
 namespace auth.Domain.Services;
 
@@ -17,6 +21,7 @@ public class UsuarioService : IUsuarioService
     private readonly IUsuarioRepository _usuarioRepository;
     private readonly INotificador _notificador;
     private readonly JwtSettings _jwtSettings;
+    private readonly RabbitSettings _rabbitSettings;
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly PermissionModel _permissions;
     private readonly IMessageBus _messageBus;
@@ -26,6 +31,7 @@ public class UsuarioService : IUsuarioService
         IUsuarioRepository usuarioRepository, 
         INotificador notificador,
         IOptions<JwtSettings> jwtSettings,
+        IOptions<RabbitSettings> rabbitSettings,
         SignInManager<IdentityUser> signInManager,
         PermissionModel permissions,
         IMessageBus messageBus,
@@ -39,47 +45,101 @@ public class UsuarioService : IUsuarioService
         _signInManager = signInManager;
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
+        _rabbitSettings = rabbitSettings.Value;
     }
 
-    public async Task<LoginResponseViewModel?> AdicionarUsuarioAsync(RegisterUserViewModel registerUser)
+    public async Task<bool> AdicionarUsuarioAsync(RegisterUserViewModel registerUser)
     {
-        var user = new IdentityUser
+        var usuarioExistente = 
+            await _usuarioRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
+
+        IdentityUser user;
+
+        if (usuarioExistente == null)
         {
-            UserName = registerUser.Nome + "-" + Guid.NewGuid().ToString(),
-            Email = registerUser.Email,
-            EmailConfirmed = true
-        };
-
-        var usuarioPorEmail = await _usuarioRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
-
-        if (usuarioPorEmail == null)
-        {
-            var result = await _usuarioRepository.AdicionarUsuarioAsync(user, registerUser.Password);   
-
-            if (!result.Succeeded)
+            user = new IdentityUser
             {
-                _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
-                return null;
+                UserName = registerUser.Email,
+                Email = registerUser.Email,
+                EmailConfirmed = true
+            };
+            var created = await CriaUserIdentity(user, registerUser.Password, registerUser);
+            if (!created) return false;
+        } else
+        {
+            var executaLogin =
+                await _signInManager.PasswordSignInAsync(usuarioExistente.UserName, registerUser.Password, false, true);
+            if (!executaLogin.Succeeded)
+            {
+                _notificador.Handle(new Notificacao("A senha deve ser a mesma do outro sistema para a liberação de permissão!"));
+                return false;
             }
 
-            if (!await SalvaUserClaims(user, registerUser)) return null;
-
-            await _signInManager.SignInAsync(user, false);
-            return await GerarJwt(user);
+            user = usuarioExistente;
         }
 
-        var executaLogin =
-            await _signInManager.PasswordSignInAsync(usuarioPorEmail.UserName, registerUser.Password, false, true);
-        if (!executaLogin.Succeeded)
+        var usuarioRegistrado = await RegistraUsuario(registerUser);
+        if(!usuarioRegistrado.ValidationResult.IsValid || usuarioRegistrado == null) 
+            return false;
+
+        if (!await SalvaUserClaims(user, registerUser))
+            return false;
+
+        return true;
+    }
+
+    private async Task<ResponseMessage> RegistraUsuario(RegisterUserViewModel registerUser)
+    {
+        var usuario = await _usuarioRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
+
+        var usuarioRegistrado = new UsuarioRegistradoIntegrationEvent
         {
-            _notificador.Handle(new Notificacao("A senha deve ser a mesma do outro sistema para a liberação de permissão!"));
-            return null;
+            Id = usuario.Id,
+            Nome = registerUser.Nome,
+            Email = usuario.Email
+        };
+
+        try
+        {
+            var usuarioResult = 
+                await _messageBus.RequestAsync<UsuarioRegistradoIntegrationEvent, ResponseMessage>(usuarioRegistrado);
+
+            if (!usuarioResult.ValidationResult.IsValid)
+            {
+
+                var errors = usuarioResult.ValidationResult.Errors;
+
+                foreach (var error in errors)
+                    _notificador.Handle(new Notificacao(error.ErrorMessage));
+
+                return usuarioResult;
+            }
+
+            return usuarioResult;
+        } catch
+        {
+            _notificador.Handle(new Notificacao("Erro ao cadastrar usuário no sistema"));
+            return new ResponseMessage(
+                    new ValidationResult(
+                        [ 
+                            new FV.ValidationFailure("", "Erro de integração") 
+                        ]
+                    )
+                );
+        }
+    }
+
+    private async Task<bool> CriaUserIdentity(IdentityUser user, string password, RegisterUserViewModel registerUser)
+    {
+        var result = await _usuarioRepository.AdicionarUsuarioAsync(user, password);
+
+        if (!result.Succeeded)
+        {
+            _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
+            return false;
         }
 
-        if (!await SalvaUserClaims(usuarioPorEmail, registerUser)) return null;
-
-        await _signInManager.SignInAsync(usuarioPorEmail, false);
-        return await GerarJwt(usuarioPorEmail);
+        return true;
     }
 
     public async Task<LoginResponseViewModel?> LogarUsuarioAsync(LoginUserViewModel loginUser)
@@ -129,7 +189,7 @@ public class UsuarioService : IUsuarioService
 
         var resetLink = $"{_frontUrl}/auth?email={encodedEmail}&token={encodedToken}";
 
-        await _messageBus.PublishAsync(geraEmailEvent(data.Email, resetLink, user.Id), "email.send");
+        await _messageBus.PublishAsync(geraEmailEvent(data.Email, resetLink, user.Id));
         return true;
     }
 
@@ -160,8 +220,8 @@ public class UsuarioService : IUsuarioService
         return true;
     }
 
-    private EmailEvent geraEmailEvent(string email, string resetLink, string userId)
-        => new EmailEvent
+    private EmailIntegrationEvent geraEmailEvent(string email, string resetLink, string userId)
+        => new EmailIntegrationEvent
         {
             To = email,
             Type = "RESET",
