@@ -76,13 +76,15 @@ public class UsuarioService : IUsuarioService
             }
 
             user = usuarioExistente;
-
-            if (!await SalvaUserClaims(usuarioExistente, registerUser)) return false;
         }
 
         var usuarioRegistrado = await RegistraUsuario(registerUser);
         if(!usuarioRegistrado.ValidationResult.IsValid || usuarioRegistrado == null) 
             return false;
+
+        if (!await SalvaUserClaims(user, registerUser))
+            return false;
+
         return true;
     }
 
@@ -136,9 +138,6 @@ public class UsuarioService : IUsuarioService
             _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
             return false;
         }
-
-        if (!await SalvaUserClaims(user, registerUser)) 
-            return false;
 
         return true;
     }
