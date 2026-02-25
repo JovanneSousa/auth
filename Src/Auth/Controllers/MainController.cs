@@ -1,60 +1,74 @@
-﻿using auth.Domain.Entities;
-using auth.Domain.Interfaces;
+﻿using auth.Infra.Validations;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-namespace auth.Controllers;
 
-[ApiController]
-public abstract class MainController : ControllerBase
+namespace auth.Controllers
 {
-    protected readonly INotificador _notificador;
-
-    protected MainController(INotificador notificador)
+    public abstract class MainController : Controller
     {
-        _notificador = notificador;
-    }
+        protected ICollection<string> Erros = new List<string>();
 
-    protected bool OperacaoValida()
-    {
-        return !_notificador.TemNotificacao();
-    }
-
-    protected ActionResult CustomResponse(object result = null)
-    {
-        if (OperacaoValida())
+        protected ActionResult CustomResponse(ModelStateDictionary modelState)
         {
-            return Ok(new
+            var erros = modelState.Values.SelectMany(e => e.Errors);
+            foreach (var erro in erros)
+                AdicionarErroProcessamento(erro.ErrorMessage);
+
+            return CustomResponse();
+        }
+
+        protected ActionResult CustomResponse(object result = null)
+        {
+            if(OperacaoValida())
             {
-                success = true,
-                data = result
-            });
+                return Ok(result);
+            }
+
+            return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                {"Mensagens", Erros.ToArray()  },
+            }));
         }
 
-        return BadRequest(new
+        protected ActionResult CustomResponse(ValidationResult validationResult)
         {
-            success = false,
-            errors = _notificador.ObterNotificacoes().Select(n => n.Mensagem)
-        });
-    }
+            foreach (var erro in validationResult.Errors)
+                AdicionarErroProcessamento(erro.ErrorMessage);
 
-    protected ActionResult CustomResponse(ModelStateDictionary modelState)
-    {
-        if (!modelState.IsValid) NotificarErroModelInvalida(modelState);
-        return CustomResponse();
-    }
-
-    protected void NotificarErroModelInvalida(ModelStateDictionary modelState)
-    {
-        var erros = modelState.Values.SelectMany(e => e.Errors);
-        foreach (var erro in erros)
-        {
-            var errorMsg = erro.Exception == null ? erro.ErrorMessage : erro.Exception.Message;
-            NotificarErro(errorMsg);
+            return CustomResponse();
         }
-    }
 
-    protected void NotificarErro(string mensagem)
-    {
-        _notificador.Handle(new Notificacao(mensagem));
+        protected ActionResult CustomResponse(ResponseResult resposta)
+        {
+            ResponsePossuiErros(resposta);
+
+            return CustomResponse();
+        }
+
+        protected bool ResponsePossuiErros(ResponseResult resposta)
+        {
+            if (resposta == null || !resposta.Errors.Mensagens.Any()) return false;
+
+            foreach (var mensagem in resposta.Errors.Mensagens)
+            {
+                AdicionarErroProcessamento(mensagem);
+            }
+
+            return true;
+        }
+
+
+        private bool OperacaoValida()
+            => !Erros.Any();
+        private void AdicionarErroProcessamento(string errorMessage)
+        {
+            Erros.Add(errorMessage);
+        }
+
+        protected void LimparErrosProcessamento()
+        {
+            Erros.Clear();
+        }
     }
 }
