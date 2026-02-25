@@ -11,8 +11,8 @@ public static class DiConfig
     public static async Task<WebApplicationBuilder> AddDiConfig(this WebApplicationBuilder builder)
     {
         builder.Services.AddScoped<INotificador, Notificador>();
-        builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
-        builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+        builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+        builder.Services.AddScoped<IAuthService, AuthService>();
 
         return builder;
     }

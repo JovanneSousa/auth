@@ -16,19 +16,18 @@ using FV = FluentValidation.Results;
 
 namespace auth.Domain.Services;
 
-public class UsuarioService : IUsuarioService
+public class AuthService : IAuthService
 {
-    private readonly IUsuarioRepository _usuarioRepository;
+    private readonly IAuthRepository _authRepository;
     private readonly INotificador _notificador;
     private readonly JwtSettings _jwtSettings;
-    private readonly RabbitSettings _rabbitSettings;
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly PermissionModel _permissions;
     private readonly IMessageBus _messageBus;
     private readonly string _frontUrl;
 
-    public UsuarioService(
-        IUsuarioRepository usuarioRepository, 
+    public AuthService(
+        IAuthRepository authRepository, 
         INotificador notificador,
         IOptions<JwtSettings> jwtSettings,
         IOptions<RabbitSettings> rabbitSettings,
@@ -39,19 +38,18 @@ public class UsuarioService : IUsuarioService
         )
     {
         _permissions = permissions;
-        _usuarioRepository = usuarioRepository;
+        _authRepository = authRepository;
         _notificador = notificador;
         _jwtSettings = jwtSettings.Value;
         _signInManager = signInManager;
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
-        _rabbitSettings = rabbitSettings.Value;
     }
 
     public async Task<bool> AdicionarUsuarioAsync(RegisterUserViewModel registerUser)
     {
         var usuarioExistente = 
-            await _usuarioRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
+            await _authRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
 
         IdentityUser user;
 
@@ -90,7 +88,7 @@ public class UsuarioService : IUsuarioService
 
     private async Task<ResponseMessage> RegistraUsuario(RegisterUserViewModel registerUser)
     {
-        var usuario = await _usuarioRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
+        var usuario = await _authRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
 
         var usuarioRegistrado = new UsuarioRegistradoIntegrationEvent
         {
@@ -131,7 +129,7 @@ public class UsuarioService : IUsuarioService
 
     private async Task<bool> CriaUserIdentity(IdentityUser user, string password, RegisterUserViewModel registerUser)
     {
-        var result = await _usuarioRepository.AdicionarUsuarioAsync(user, password);
+        var result = await _authRepository.AdicionarUsuarioAsync(user, password);
 
         if (!result.Succeeded)
         {
@@ -144,14 +142,14 @@ public class UsuarioService : IUsuarioService
 
     public async Task<LoginResponseViewModel?> LogarUsuarioAsync(LoginUserViewModel loginUser)
     {
-        var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(loginUser.Email);
+        var user = await _authRepository.ObterUsuarioPorEmailAsync(loginUser.Email);
         if (user == null)
         {
             _notificador.Handle(new Notificacao("usuário ou senha incorretos!"));
             return null;
         };
 
-        var claims = await _usuarioRepository.ObterClaimsAsync(user);
+        var claims = await _authRepository.ObterClaimsAsync(user);
 
         var result = await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true);
         if (!result.Succeeded)
@@ -176,13 +174,13 @@ public class UsuarioService : IUsuarioService
 
     public async Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data)
     {
-        var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(data.Email);
+        var user = await _authRepository.ObterUsuarioPorEmailAsync(data.Email);
         if (user == null) return true;
 
-        var confirmado = await _usuarioRepository.isEmailConfirmed(user);
+        var confirmado = await _authRepository.isEmailConfirmed(user);
         if (!confirmado) return true;
 
-        var token = await _usuarioRepository.GeraTokenReset(user);
+        var token = await _authRepository.GeraTokenReset(user);
 
         var encodedEmail = Uri.EscapeDataString(data.Email);
         var encodedToken = Uri.EscapeDataString(token);
@@ -200,7 +198,7 @@ public class UsuarioService : IUsuarioService
             _notificador.Handle(new Notificacao("Email inválido!"));
             return false;
         }
-        var user = await _usuarioRepository.ObterUsuarioPorEmailAsync(data.Email);
+        var user = await _authRepository.ObterUsuarioPorEmailAsync(data.Email);
         if(user == null)
         {
             _notificador.Handle(new Notificacao("Usuário não encontrado!"));
@@ -211,7 +209,7 @@ public class UsuarioService : IUsuarioService
             _notificador.Handle(new Notificacao("token inválido!"));
             return false;
         }
-        var result = await _usuarioRepository.ResetarSenha(user, data.Token, data.Password);
+        var result = await _authRepository.ResetarSenha(user, data.Token, data.Password);
         if (!result.Succeeded)
         {
             _notificador.Handle(new Notificacao("Houve um erro atualizando a senha!"));
@@ -241,7 +239,7 @@ public class UsuarioService : IUsuarioService
         var claimsToAdd = await GeraListaDeClaims(user, registerUser);
         if (claimsToAdd == null) return false;
 
-        var resultAddClaims = await _usuarioRepository.SalvaClaimsAsync(user, claimsToAdd);
+        var resultAddClaims = await _authRepository.SalvaClaimsAsync(user, claimsToAdd);
         if (!resultAddClaims.Succeeded)
         {
             _notificador.Handle(new Notificacao("Falha ao salvar as permissões!"));
@@ -252,7 +250,7 @@ public class UsuarioService : IUsuarioService
 
     private async Task<List<Claim>?> GeraListaDeClaims(IdentityUser user, RegisterUserViewModel registerUser)
     {
-        var claims = await _usuarioRepository.ObterClaimsAsync(user);
+        var claims = await _authRepository.ObterClaimsAsync(user);
         var systemClaims = claims.FirstOrDefault(c =>
             c.Type == "permission" &&
             c.Value.StartsWith(registerUser.System.ToUpper())
@@ -302,9 +300,9 @@ public class UsuarioService : IUsuarioService
                 new Claim(ClaimTypes.NameIdentifier, user.Id)
             };
 
-        claims.AddRange(await _usuarioRepository.ObterClaimsAsync(user));
+        claims.AddRange(await _authRepository.ObterClaimsAsync(user));
 
-        var roles = await _usuarioRepository.ObterRolesAsync(user);
+        var roles = await _authRepository.ObterRolesAsync(user);
         claims.AddRange(roles.Select(role => new Claim("role", role)));
 
         return claims;

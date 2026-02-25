@@ -4,7 +4,7 @@ using System.Security.Claims;
 
 namespace auth.Domain.Repositories;
 
-public class UsuarioRepository : IUsuarioRepository
+public class UsuarioRepository : IAuthRepository
 {
     private readonly UserManager<IdentityUser> _userManager;
     public UsuarioRepository(

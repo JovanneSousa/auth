@@ -9,28 +9,28 @@ namespace fin_api.Controllers
 {
     [ApiController]
     [Route("api/auth")]
-    public class AuthController : MainController
+    public class AuthController : ApiController
     {
-        private readonly IUsuarioService _usuarioService;
+        private readonly IAuthService _authService;
 
 
         public AuthController
             (
             IOptions<JwtSettings> jwtSettings,
             INotificador notificador,
-            IUsuarioService usuarioService
+            IAuthService authService
             ) : base(notificador)
         {
-            _usuarioService = usuarioService;
+            _authService = authService;
         }
 
         [HttpPost("registrar")]
         public async Task<ActionResult> Registrar(RegisterUserViewModel registerUser) =>
-            CustomResponse(new { token = await _usuarioService.AdicionarUsuarioAsync(registerUser) });
+            CustomResponse(new { token = await _authService.AdicionarUsuarioAsync(registerUser) });
 
         [HttpPost("login")]
         public async Task<ActionResult> Login(LoginUserViewModel loginUser) =>
-            CustomResponse(new { token = await _usuarioService.LogarUsuarioAsync(loginUser) });
+            CustomResponse(new { token = await _authService.LogarUsuarioAsync(loginUser) });
 
         [HttpGet("health")]
         public ActionResult WakeUp() =>
@@ -38,10 +38,10 @@ namespace fin_api.Controllers
 
         [HttpPost("forgot-password")]
         public async Task<ActionResult<string>> ForgotPassword(ForgotPassViewModel data)
-            => CustomResponse(await _usuarioService.GerarTokenResetarSenha(data));
+            => CustomResponse(await _authService.GerarTokenResetarSenha(data));
 
         [HttpPost("reset-pass")]
         public async Task<ActionResult<string>> ResetPass(ResetPassViewModel data)
-            => CustomResponse(await _usuarioService.RecuperarSenha(data));
+            => CustomResponse(await _authService.RecuperarSenha(data));
     }
 }
