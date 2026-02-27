@@ -14,18 +14,10 @@ COPY Src ./Src
 COPY . .
 RUN dotnet restore Src/Auth.Api/Auth.Api.csproj
 
-RUN dotnet publish Src/Auth.Client/Auth.Client.csproj \
-    -c Release \
-    -o /app/client-publish
-
-RUN mkdir -p Src/Auth.Api/wwwroot
-RUN cp -r /app/client-publish/wwwroot/* Src/Auth.Api/wwwroot/
-
 RUN dotnet publish Src/Auth.Api/Auth.Api.csproj \
     -c Release \
     -o /app/publish \
     --no-restore
-
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app

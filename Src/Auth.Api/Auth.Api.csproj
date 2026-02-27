@@ -30,8 +30,4 @@
     <ProjectReference Include="..\Auth.Infra\Infra.csproj" />
   </ItemGroup>
 
-	<PropertyGroup>
-		<StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
-	</PropertyGroup>
-
 </Project>
