@@ -15,6 +15,8 @@ await builder
     .AddSettingsConfig()
     .AddDiConfig();
 
+builder.Services.AddRazorPages();
+
 builder = await builder.AddMessageBus();
 
 builder.Services.AddEndpointsApiExplorer();
