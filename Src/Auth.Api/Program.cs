@@ -39,7 +39,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
-//app.MapRazorPages();
+app.MapRazorPages();
 
 app.MapFallbackToFile("index.html");
 

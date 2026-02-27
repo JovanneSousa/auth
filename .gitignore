@@ -16,6 +16,9 @@ secrets.json
 Src/Auth.Client/wwwroot/_framework/
 Src/Auth.Client/wwwroot/service-worker-assets.js
 
+# LibMan
+Src/Auth.Client/wwwroot/lib/
+
 # Logs
 *.log
 logs/
