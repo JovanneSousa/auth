@@ -31,7 +31,7 @@
   </ItemGroup>
 
 	<Target Name="PublishBlazor" AfterTargets="Publish">
-		<Exec Command="dotnet publish ../Auth.Client -c Release -o $(PublishDir)wwwroot" />
+		<Exec Command="dotnet publish ../Auth.Client/Auth.Client.csproj -c Release -o $(PublishDir)wwwroot" />
 	</Target>
 
 </Project>
