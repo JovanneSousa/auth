@@ -9,8 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="Jovane.MessageBus" Version="1.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -31,7 +31,7 @@
   </ItemGroup>
 
 	<Target Name="PublishBlazor" AfterTargets="Publish">
-		<Exec Command="dotnet publish ../Auth.Client/Auth.Client.csproj -c Release -o $(PublishDir)wwwroot" />
+		<Exec Command="dotnet publish ../Auth.Client -c Release -o $(PublishDir)wwwroot" />
 	</Target>
 
 </Project>
