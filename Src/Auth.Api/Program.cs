@@ -37,6 +37,10 @@ if (app.Environment.IsDevelopment())
 {
     app.UseCors("Production");
 }
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
+
+app.MapFallbackToFile("index.html");
 
 app.UseHttpsRedirection();
 
