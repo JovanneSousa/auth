@@ -16,8 +16,7 @@ RUN dotnet restore Src/Auth.Api/Auth.Api.csproj
 
 RUN dotnet publish Src/Auth.Api/Auth.Api.csproj \
     -c Release \
-    -o /app/publish \
-    --no-restore
+    -o /app/publish 
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
