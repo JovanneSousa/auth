@@ -1,0 +1,8 @@
+﻿footer {
+    position: fixed;
+    bottom: 0;
+    background-color: #f7f7f7;
+    width: 100%;
+    padding: 8px 16px;
+    font-size: 12px;
+}

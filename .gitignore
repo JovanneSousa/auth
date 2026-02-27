@@ -1,4 +1,28 @@
-.vs/
-obj/
+# Build
 bin/
-Migrations/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# User secrets
+secrets.json
+
+# Blazor WASM generated
+Src/Auth.Client/wwwroot/_framework/
+Src/Auth.Client/wwwroot/service-worker-assets.js
+
+# LibMan
+Src/Auth.Client/wwwroot/lib/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
