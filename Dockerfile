@@ -18,9 +18,6 @@ RUN dotnet publish Src/Auth.Client/Auth.Client.csproj \
     -c Release \
     -o /app/client-publish
 
-RUN mkdir -p Src/Auth.Api/wwwroot
-RUN cp -r /app/client-publish/wwwroot/* Src/Auth.Api/wwwroot/
-
 RUN dotnet publish Src/Auth.Api/Auth.Api.csproj \
     -c Release \
     -o /app/publish \
