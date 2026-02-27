@@ -30,8 +30,4 @@
     <ProjectReference Include="..\Auth.Infra\Infra.csproj" />
   </ItemGroup>
 
-	<Target Name="PublishBlazor" AfterTargets="Publish">
-		<Exec Command="dotnet publish ../Auth.Client -c Release -o $(PublishDir)wwwroot" />
-	</Target>
-
 </Project>
