@@ -41,10 +41,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await Http.GetFromJsonAsync<ResponsePayload<AuthUserViewModel[]>>("http://localhost:5071/api/auth/listar-usuarios");
+        var response = 
+        await Http.GetFromJsonAsync<ResponsePayload<AuthUserViewModel[]>>("api/auth/listar-usuarios");
         if (response.Success)
         {
             usuarios = response.Data;
+        } else
+        {
+            usuarios = new AuthUserViewModel[0];
         }
     }
 
