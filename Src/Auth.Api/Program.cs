@@ -39,16 +39,18 @@ if (app.Environment.IsDevelopment())
 {
     app.UseCors("Production");
 }
+app.UseHttpsRedirection();
+
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
-app.MapRazorPages();
 
-app.MapFallbackToFile("index.html");
-
-app.UseHttpsRedirection();
+app.UseRouting();
 
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapRazorPages();
+
+app.MapFallbackToFile("index.html");
 
 app.Run();
