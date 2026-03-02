@@ -11,12 +11,12 @@ RUN apt-get update && \
 COPY auth.sln ./
 COPY Src ./Src
 
-COPY . .
 RUN dotnet restore Src/Auth.Api/Auth.Api.csproj
 
 RUN dotnet publish Src/Auth.Api/Auth.Api.csproj \
     -c Release \
-    -o /app/publish 
+    -o /app/publish \
+    /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app

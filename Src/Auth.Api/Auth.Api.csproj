@@ -29,8 +29,4 @@
     <ProjectReference Include="..\Auth.Domain\Auth.Domain.csproj" />
     <ProjectReference Include="..\Auth.Infra\Infra.csproj" />
   </ItemGroup>
-	
-	<Target Name="PublishClient" AfterTargets="Publish">
-		<Exec Command="dotnet publish ../Auth.Client/Auth.Client.csproj -c Release -o /app/publish/wwwroot" />
-	</Target>
 </Project>
