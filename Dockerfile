@@ -13,10 +13,13 @@ COPY Src ./Src
 
 RUN dotnet restore Src/Auth.Api/Auth.Api.csproj
 
+RUN dotnet publish Src/Auth.Client/Auth.Client.csproj -c Release
+
 RUN dotnet publish Src/Auth.Api/Auth.Api.csproj \
     -c Release \
     -o /app/publish \
-    /p:UseAppHost=false
+    /p:UseAppHost=false \
+    /p:StaticWebAssetsEnabled=true
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
