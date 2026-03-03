@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <PackageReference Include="Jovane.MessageBus" Version="1.0.3" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
       <PrivateAssets>all</PrivateAssets>
@@ -25,7 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Auth.Application\Auth.Application.csproj" />
-    <ProjectReference Include="..\Auth.Client\Auth.Client.csproj" />
     <ProjectReference Include="..\Auth.Domain\Auth.Domain.csproj" />
     <ProjectReference Include="..\Auth.Infra\Infra.csproj" />
   </ItemGroup>
