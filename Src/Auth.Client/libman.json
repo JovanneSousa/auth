@@ -3,14 +3,14 @@
   "defaultProvider": "cdnjs",
   "libraries": [
     {
-      "provider": "cdnjs",
-      "library": "bootstrap@5.3.8",
-      "destination": "wwwroot/lib/bootstrap/"
+      "library": "twitter-bootstrap@5.3.3",
+      "destination": "wwwroot/lib/bootstrap",
+      "files": [ "css/bootstrap.min.css", "js/bootstrap.bundle.min.js" ]
     },
     {
-      "provider": "cdnjs",
-      "library": "bootstrap-icons@1.13.1",
-      "destination": "wwwroot/lib/bootstrap-icons/"
+      "library": "bootstrap-icons@1.11.3",
+      "destination": "wwwroot/lib/bootstrap-icons",
+      "files": [ "font/bootstrap-icons.css", "font/fonts/bootstrap-icons.woff2" ]
     }
   ]
 }
