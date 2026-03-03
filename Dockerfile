@@ -18,7 +18,11 @@ RUN dotnet publish Src/Auth.Api/Auth.Api.csproj \
     -o /app/publish \
     /p:UseAppHost=false \
     /p:StaticWebAssetsEnabled=true \
-    /p:BlazorWebAssemblyEnableLinking=true
+    /p:BlazorWebAssemblyEnableLinking=true \
+ && echo "=== wwwroot ===" \
+ && ls -la /app/publish/wwwroot || echo "SEM wwwroot" \
+ && echo "=== _framework ===" \
+ && ls /app/publish/wwwroot/_framework 2>/dev/null | head -10 || echo "SEM _framework"
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
