@@ -7,9 +7,9 @@ COPY Src/ ./Src/
 RUN dotnet tool install -g Microsoft.Web.LibraryManager.Cli
 ENV PATH="$PATH:/root/.dotnet/tools"
 
-RUN dotnet restore Src/Auth.Client/Auth.Client.csproj
-RUN libman restore --project-path Src/Auth.Client  
-RUN dotnet publish Src/Auth.Client/Auth.Client.csproj -c Release -o /blazor/publish
+RUN dotnet restore Src/Auth.Client/Auth.Client.csproj && \
+    cd Src/Auth.Client && libman restore && \
+    cd /src && dotnet publish Src/Auth.Client/Auth.Client.csproj -c Release -o /blazor/publish
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
 WORKDIR /src
