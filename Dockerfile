@@ -1,37 +1,41 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+# ── Stage 1: build do Blazor WASM ──────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS blazor-build
 WORKDIR /src
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        ca-certificates \
-        curl \
-        openssl && \
-    update-ca-certificates
+COPY auth.sln ./
+COPY Src/ ./Src/
+
+RUN dotnet restore Src/Auth.Client/Auth.Client.csproj
+
+RUN dotnet publish Src/Auth.Client/Auth.Client.csproj \
+    -c Release \
+    -o /blazor/publish
+
+# ── Stage 2: build da API ───────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
+WORKDIR /src
 
 COPY auth.sln ./
-COPY Src ./Src
+COPY Src/ ./Src/
 
-RUN dotnet restore auth.sln
+RUN dotnet restore Src/Auth.Api/Auth.Api.csproj
 
 RUN dotnet publish Src/Auth.Api/Auth.Api.csproj \
     -c Release \
     -o /app/publish \
-    /p:UseAppHost=false \
-    /p:StaticWebAssetsEnabled=true \
-    /p:BlazorWebAssemblyEnableLinking=true \
- && echo "=== wwwroot ===" \
- && ls -la /app/publish/wwwroot || echo "SEM wwwroot" \
- && echo "=== _framework ===" \
- && ls /app/publish/wwwroot/_framework 2>/dev/null | head -10 || echo "SEM _framework"
+    /p:UseAppHost=false
 
+# ── Stage 3: runtime ────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-COPY --from=build /app/publish .
+COPY --from=api-build /app/publish .
+
+# Copia os arquivos estáticos do Blazor para o wwwroot da API
+COPY --from=blazor-build /blazor/publish/wwwroot ./wwwroot
 
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://+:8080
-
 EXPOSE 8080
-
 ENTRYPOINT ["dotnet", "Auth.Api.dll"]
