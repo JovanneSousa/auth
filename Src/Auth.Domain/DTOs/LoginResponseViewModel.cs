@@ -1,7 +1,6 @@
 ﻿using Auth.Domain.Entities;
 
-namespace Auth.Application.DTOs;
-
+namespace Auth.Domain.DTOs;
 public class LoginResponseViewModel
 {
         public string AccessToken { get; set; }

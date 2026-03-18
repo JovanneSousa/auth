@@ -13,7 +13,8 @@ using System.Text;
 using Auth.Infra.Identity;
 using Auth.Infra.Notifications;
 using FV = FluentValidation.Results;
-using Auth.Application.DTOs;
+using Auth.Domain.DTOs;
+using Auth.Domain.Interfaces;
 
 namespace Auth.Application.Services;
 

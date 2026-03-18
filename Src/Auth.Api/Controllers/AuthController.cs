@@ -1,6 +1,6 @@
 ﻿using Auth.Api.Controllers;
-using Auth.Application.DTOs;
-using Auth.Application.Services;
+using Auth.Domain.DTOs;
+using Auth.Domain.Interfaces;
 using Auth.Infra.Identity;
 using Auth.Infra.Notifications;
 using Microsoft.AspNetCore.Mvc;

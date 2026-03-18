@@ -13,7 +13,7 @@ if(builder.HostEnvironment.IsDevelopment())
 {
     builder.Services.AddScoped(sp => new HttpClient
     {
-        BaseAddress = new Uri("https://localhost:7146")
+        BaseAddress = new Uri("http://localhost:5071")
     });
 } else
 {

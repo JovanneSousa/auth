@@ -1,6 +1,7 @@
 ﻿using Auth.Infra.Notifications;
 using Auth.Application.Repositories;
 using Auth.Application.Services;
+using Auth.Domain.Interfaces;
 
 namespace Auth.Api.Configuration;
 
