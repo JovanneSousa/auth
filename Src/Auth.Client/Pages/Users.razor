@@ -1,102 +1,96 @@
 ﻿@page "/usuarios"
 @inject HttpClient Http
 
-<PageTitle>Lista de Usuarios</PageTitle>
+@using System.Net.Http.Json
+@inject HttpClient httpClient
 
-<h1>Lista de Usuarios</h1>
-
-@if (Usuarios == null)
+@if (Usuarios == null )
 {
     <p><em>Loading...</em></p>
-}
-else
+} else
 {
     <MudDataGrid 
-    @ref="_elementGrid"
-    T="AuthUserViewModel"
-    Items="@Usuarios"
-    EditMode="DataGridEditMode.Form"
-    StartedEditingItem="@StartedEditingItem" 
-    CanceledEditingItem="@CanceledEditingItem" 
-    CommittedItemChanges="@CommittedItemChanges"
-    Bordered="true"
-    Dense="true"
-    EditTrigger="DataGridEditTrigger.Manual"
-    RowKey="x => x.Email">
+        @ref="_elementGrid" 
+        T="AuthUserViewModel" 
+        Items="@Usuarios" 
+        EditMode="@DataGridEditMode.Form"
+        ReadOnly="@_readOnly"
+        StartedEditingItem="@StartedEditingItem" 
+        CanceledEditingItem="@CanceledEditingItem" 
+        CommittedItemChanges="@CommittedItemChanges"
+        Bordered="true" 
+        Dense="true" 
+        EditTrigger="DataGridEditTrigger.Manual">
 
-    <Columns>
-        <PropertyColumn Property="x => x.Email" />
-        <PropertyColumn Property="x => x.UserName" />
-        <TemplateColumn Title="Ações" CellClass="d-flex justify-between">
-            <CellTemplate>
-                <MudIconButton 
-                    Size="@Size.Small" 
-                    Icon="@Icons.Material.Outlined.Edit" 
-                    OnClick="@(() => EditarItem(context.Item))"
-                    @onclick:stopPropagation="true" />
-                <MudIconButton 
-                    Size="@Size.Small" 
-                    Icon="@Icons.Material.Outlined.Delete"
-                    @onclick:stopPropagation="true" />
-            </CellTemplate>
-        </TemplateColumn>
-    </Columns>
-
-    <EditFormTemplate Context="editContext">
-        <MudTextField @bind-Value="editContext.Item.Email" Label="Email" />
-        <MudTextField @bind-Value="editContext.Item.UserName" Label="Usuário" />
-
-        <MudButton OnClick="@editContext.Actions.CommitItemChangesAsync">
-            Salvar
-        </MudButton>
-        <MudButton OnClick="@editContext.Actions.CancelEditingItemAsync">
-            Cancelar
-        </MudButton>
-    </EditFormTemplate>
-
-</MudDataGrid>
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Lista de usuarios</MudText>
+            <MudSpacer />
+            <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Filled">
+                <MudButton OnClick="NewItemAsync">
+                    Criar Novo Usuario
+                </MudButton>
+            </MudButtonGroup>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.Email" />
+            <PropertyColumn Property="x => x.UserName" />
+            <TemplateColumn Title="Ações" Hidden="@_readOnly" CellClass="d-flex justify-between">
+                <CellTemplate>
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteItem(context.Item))" />
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
 }
 
 @code {
-    private List<AuthUserViewModel>? Usuarios;
+    private List<AuthUserViewModel> Usuarios;
+    private bool _readOnly;
     private List<string> _events = new();
     private MudDataGrid<AuthUserViewModel> _elementGrid = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        var response = 
-        await Http.GetFromJsonAsync<ResponsePayload<List<AuthUserViewModel>>>("api/auth/listar-usuarios");
-        if (response.Success)
+        try
         {
-            Usuarios = response.Data;
-        } else
+            ResponsePayload<IEnumerable<AuthUserViewModel>> response = 
+                await httpClient.GetFromJsonAsync<ResponsePayload<IEnumerable<AuthUserViewModel>>>("api/auth/listar-usuarios");
+            Usuarios = response.Data.ToList();
+        } catch
         {
             Usuarios = new List<AuthUserViewModel>();
         }
     }
 
-    private async Task EditarItem(AuthUserViewModel item)
+    private async Task NewItemAsync()
     {
-        await _elementGrid.SetEditingItemAsync(item);
-        Console.WriteLine("Editou!");
+        var elem = new AuthUserViewModel();
+            await _elementGrid.SetEditingItemAsync(elem);
+    }
+
+    private void DeleteItem(AuthUserViewModel item)
+    {
+        Usuarios.Remove(item);
     }
 
     // events
-    private Task StartedEditingItem(AuthUserViewModel item)
+    private void StartedEditingItem(AuthUserViewModel item)
     {
         _events.Insert(0, $"Event = StartedEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
-        return Task.CompletedTask;
     }
 
-    private Task CanceledEditingItem(AuthUserViewModel item)
+    private void CanceledEditingItem(AuthUserViewModel item)
     {
+        // update code for backing data here if needed
         _events.Insert(0, $"Event = CanceledEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
-        return Task.CompletedTask;
     }
 
     private Task<DataGridEditFormAction> CommittedItemChanges(AuthUserViewModel item)
     {
+        // update code for the backing data here
         _events.Insert(0, $"Event = CommittedItemChanges, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+
         return Task.FromResult(DataGridEditFormAction.Close);
     }
     
