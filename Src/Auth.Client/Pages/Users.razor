@@ -14,7 +14,7 @@
         T="AuthUserViewModel" 
         Items="@Usuarios" 
         EditMode="@DataGridEditMode.Form"
-        ReadOnly="@_readOnly"
+        ReadOnly="false"
         StartedEditingItem="@StartedEditingItem" 
         CanceledEditingItem="@CanceledEditingItem" 
         CommittedItemChanges="@CommittedItemChanges"
@@ -32,9 +32,15 @@
             </MudButtonGroup>
         </ToolBarContent>
         <Columns>
+            <TemplateColumn hidden="true">
+                <EditTemplate>
+                    @* Conteúdo extra exibido dentro do form de edição *@
+                    <MudText Typo="Typo.h6" Class="mb-2">Editar Usuário</MudText>
+                </EditTemplate>
+            </TemplateColumn>
             <PropertyColumn Property="x => x.Email" />
             <PropertyColumn Property="x => x.UserName" />
-            <TemplateColumn Title="Ações" Hidden="@_readOnly" CellClass="d-flex justify-between">
+            <TemplateColumn Title="Ações" CellClass="d-flex justify-between">
                 <CellTemplate>
                     <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
                     <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteItem(context.Item))" />
@@ -46,7 +52,6 @@
 
 @code {
     private List<AuthUserViewModel> Usuarios;
-    private bool _readOnly;
     private List<string> _events = new();
     private MudDataGrid<AuthUserViewModel> _elementGrid = default!;
 
