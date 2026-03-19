@@ -1,5 +1,4 @@
-﻿using Auth.Application.Data;
-using Auth.Domain.Exceptions;
+﻿using Auth.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -7,12 +6,6 @@ namespace Auth.Application.Repositories
 {
     public abstract class BaseRepository
     {
-        protected readonly ApplicationDbContext _context;
-        protected BaseRepository(ApplicationDbContext context)
-        {
-            _context = context;
-        }
-
         protected async Task<T> ExecuteAsync<T>(Func<Task<T>> action)
         {
             try
@@ -45,8 +38,5 @@ namespace Auth.Application.Repositories
                 return true;
             });
         }
-
-        protected async Task SaveChangesAsync()
-            => await ExecuteAsync(() => _context.SaveChangesAsync());
     }
 }
