@@ -61,7 +61,6 @@ public class AuthService : IAuthService
             {
                 Email = user.Email,
                 UserName = user.UserName,
-                Perfils = roles.ToList()
             });
         }
         if (authUser.Count == 0 || authUser == null)
