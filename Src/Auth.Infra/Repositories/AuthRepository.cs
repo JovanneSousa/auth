@@ -1,4 +1,5 @@
 ﻿using Auth.Application.Repositories;
+using Auth.Infra.Identity;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +10,10 @@ namespace Auth.Infra.Repositories
     public class AuthRepository : BaseRepository, IAuthRepository
     {
         private readonly UserManager<IdentityUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly RoleManager<ApplicationRole> _roleManager;
         public AuthRepository(
             UserManager<IdentityUser> userManager,
-            RoleManager<IdentityRole> roleManager
+            RoleManager<ApplicationRole> roleManager
             )
         {
             _userManager = userManager;
@@ -35,11 +36,11 @@ namespace Auth.Infra.Repositories
 
         public async Task<IList<string>> ObterRolesAsync(IdentityUser user) =>
             await ExecuteAsync(async () => await _userManager.GetRolesAsync(user));
-        public async Task<IdentityRole> ObterRolePorNomeAsync(string nome) =>
+        public async Task<ApplicationRole> ObterRolePorNomeAsync(string nome) =>
             await ExecuteAsync(async () => await _roleManager.FindByNameAsync(nome));
         public async Task<IdentityResult> SalvaRoleAsync(IdentityUser user, string role) =>
             await ExecuteAsync(async () => await _userManager.AddToRoleAsync(user, role));
-        public async Task<IList<Claim>> ObterClaimsRoleAsync(IdentityRole role) =>
+        public async Task<IList<Claim>> ObterClaimsRoleAsync(ApplicationRole role) =>
             await ExecuteAsync(async () => await _roleManager.GetClaimsAsync(role));
 
         public async Task<string> GeraTokenReset(IdentityUser user) =>

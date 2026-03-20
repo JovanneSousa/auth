@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
+using Auth.Infra.Identity;
 
 namespace Auth.Infra.Interfaces
 {
@@ -15,8 +16,8 @@ namespace Auth.Infra.Interfaces
 
         Task<IdentityResult> SalvaRoleAsync(IdentityUser user, string role);
         Task<IList<string>> ObterRolesAsync(IdentityUser user);
-        Task<IdentityRole> ObterRolePorNomeAsync(string nome);
-        Task<IList<Claim>> ObterClaimsRoleAsync(IdentityRole role);
+        Task<ApplicationRole> ObterRolePorNomeAsync(string nome);
+        Task<IList<Claim>> ObterClaimsRoleAsync(ApplicationRole role);
 
         Task<bool> isEmailConfirmed(IdentityUser user);
 
