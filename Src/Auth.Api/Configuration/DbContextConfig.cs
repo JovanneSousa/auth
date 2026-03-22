@@ -1,4 +1,4 @@
-﻿using Auth.Api.Data;
+﻿using Auth.Application.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Auth.Api.Configuration;
@@ -7,7 +7,7 @@ public static class DbContextConfig
 {
     public static WebApplicationBuilder AddDbContextConfig(this WebApplicationBuilder builder)
     {
-        builder.Services.AddDbContext<ApiDbContext>(o =>
+        builder.Services.AddDbContext<ApplicationDbContext>(o =>
         {
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 

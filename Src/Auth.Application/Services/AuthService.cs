@@ -13,7 +13,8 @@ using System.Text;
 using Auth.Infra.Identity;
 using Auth.Infra.Notifications;
 using FV = FluentValidation.Results;
-using Auth.Application.DTOs;
+using Auth.Domain.DTOs;
+using Auth.Domain.Interfaces;
 
 namespace Auth.Application.Services;
 
@@ -45,6 +46,30 @@ public class AuthService : IAuthService
         _signInManager = signInManager;
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
+    }
+
+    public async Task<IEnumerable<AuthUserViewModel>> ListarAuthUser()
+    {
+        var usuarios = await _authRepository.ObterTodosAuthUserAsync();
+        var authUser = new List<AuthUserViewModel>();
+
+        foreach (var user in usuarios)
+        {
+            var roles = await _authRepository.ObterRolesAsync(user);
+            var claims = await _authRepository.ObterClaimsAsync(user);
+            authUser.Add(new AuthUserViewModel
+            {
+                Email = user.Email,
+                UserName = user.UserName,
+            });
+        }
+        if (authUser.Count == 0 || authUser == null)
+        {
+            _notificador.Handle(new Notificacao("Nenhum usuario encontrado!"));
+            return default;
+        }
+
+        return authUser;
     }
 
     public async Task<bool> AdicionarUsuarioAsync(RegisterUserViewModel registerUser)
@@ -81,65 +106,12 @@ public class AuthService : IAuthService
         if(!usuarioRegistrado.ValidationResult.IsValid || usuarioRegistrado == null) 
             return false;
 
-        if (!await SalvaUserClaims(user, registerUser))
+        if (!await SalvaUserRoles(user, registerUser.Profile))
             return false;
 
         return true;
     }
-
-    private async Task<ResponseMessage> RegistraUsuario(RegisterUserViewModel registerUser)
-    {
-        var usuario = await _authRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
-
-        var usuarioRegistrado = new UsuarioRegistradoIntegrationEvent
-        {
-            Id = usuario.Id,
-            Nome = registerUser.Nome,
-            Email = usuario.Email
-        };
-
-        try
-        {
-            var usuarioResult = 
-                await _messageBus.RequestAsync<UsuarioRegistradoIntegrationEvent, ResponseMessage>(usuarioRegistrado);
-
-            if (!usuarioResult.ValidationResult.IsValid)
-            {
-
-                var errors = usuarioResult.ValidationResult.Errors;
-
-                foreach (var error in errors)
-                    _notificador.Handle(new Notificacao(error.ErrorMessage));
-
-                return usuarioResult;
-            }
-
-            return usuarioResult;
-        } catch
-        {
-            _notificador.Handle(new Notificacao("Erro ao cadastrar usuário no sistema"));
-            return new ResponseMessage(
-                    new ValidationResult(
-                        [ 
-                            new FV.ValidationFailure("", "Erro de integração") 
-                        ]
-                    )
-                );
-        }
-    }
-
-    private async Task<bool> CriaUserIdentity(IdentityUser user, string password, RegisterUserViewModel registerUser)
-    {
-        var result = await _authRepository.AdicionarUsuarioAsync(user, password);
-
-        if (!result.Succeeded)
-        {
-            _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
-            return false;
-        }
-
-        return true;
-    }
+    
 
     public async Task<LoginResponseViewModel?> LogarUsuarioAsync(LoginUserViewModel loginUser)
     {
@@ -150,27 +122,22 @@ public class AuthService : IAuthService
             return null;
         };
 
-        var claims = await _authRepository.ObterClaimsAsync(user);
-
-        var result = await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true);
-        if (!result.Succeeded)
+        var resultCorrectPass = await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true);
+        if (!resultCorrectPass.Succeeded)
         {
             _notificador.Handle(new Notificacao("usuário ou senha incorretos!"));
             return null;
         }
 
-        var hasPermission = claims.Any(c =>
-            c.Type == "permission" &&
-            c.Value.StartsWith(loginUser.System.ToUpper())
-            );
-        if (!hasPermission)
-        {
-            _notificador.Handle(new Notificacao("Usuário não tem permissão nesse sistema!"));
+        var claims = await GerarListaDeClaimsPorUserRole(user);
+        if (!await UsuarioTemPermissao(user, loginUser.System.ToUpper(), claims))
             return null;
-        }
-
+        
         await _signInManager.SignInAsync(user, false);
-        return await GerarJwt(user);
+
+        var token = GerarToken(claims);
+
+        return MontarLoginResponse(user, token, claims);
     }
 
     public async Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data)
@@ -219,6 +186,94 @@ public class AuthService : IAuthService
         return true;
     }
 
+    private async Task<IList<Claim>> GerarListaDeClaimsPorUserRole(IdentityUser user)
+    {
+        var userRoles = await _authRepository.ObterRolesAsync(user);
+        var roleClaims = new List<Claim>();
+
+        foreach (var roleName in userRoles)
+        {
+            var role = await _authRepository.ObterRolePorNomeAsync(roleName);
+            if (role == null) continue;
+
+            var claims = await _authRepository.ObterClaimsRoleAsync(role);
+            roleClaims.AddRange(claims);
+        }
+
+        return roleClaims;
+    }
+
+    private async Task<bool> UsuarioTemPermissao(IdentityUser user, string system, IList<Claim> claims)
+    {
+        var hasPermission = claims.Any(c =>
+            c.Type == "permission" &&
+            c.Value.StartsWith(system)
+            );
+
+        if (!hasPermission)
+        {
+            _notificador.Handle(new Notificacao("Usuário não tem permissão nesse sistema!"));
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task<ResponseMessage> RegistraUsuario(RegisterUserViewModel registerUser)
+    {
+        var usuario = await _authRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
+
+        var usuarioRegistrado = new UsuarioRegistradoIntegrationEvent
+        {
+            Id = usuario.Id,
+            Nome = registerUser.Nome,
+            Email = usuario.Email
+        };
+
+        try
+        {
+            var usuarioResult =
+                await _messageBus.RequestAsync<UsuarioRegistradoIntegrationEvent, ResponseMessage>(usuarioRegistrado);
+
+            if (!usuarioResult.ValidationResult.IsValid)
+            {
+
+                var errors = usuarioResult.ValidationResult.Errors;
+
+                foreach (var error in errors)
+                    _notificador.Handle(new Notificacao(error.ErrorMessage));
+
+                return usuarioResult;
+            }
+
+            return usuarioResult;
+        }
+        catch
+        {
+            _notificador.Handle(new Notificacao("Erro ao cadastrar usuário no sistema"));
+            return new ResponseMessage(
+                    new ValidationResult(
+                        [
+                            new FV.ValidationFailure("", "Erro de integração")
+                        ]
+                    )
+                );
+        }
+    }
+
+    private async Task<bool> CriaUserIdentity(IdentityUser user, string password, RegisterUserViewModel registerUser)
+    {
+        var result = await _authRepository.AdicionarUsuarioAsync(user, password);
+
+        if (!result.Succeeded)
+        {
+            _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
+            return false;
+        }
+
+        return true;
+    }
+
     private EmailIntegrationEvent geraEmailEvent(string email, string resetLink, string userId)
         => new EmailIntegrationEvent
         {
@@ -235,79 +290,98 @@ public class AuthService : IAuthService
             }
         };
 
-    private async Task<bool> SalvaUserClaims(IdentityUser user, RegisterUserViewModel registerUser)
+    private async Task<bool> SalvaUserRoles(IdentityUser user, string role)
     {
-        var claimsToAdd = await GeraListaDeClaims(user, registerUser);
-        if (claimsToAdd == null) return false;
-
-        var resultAddClaims = await _authRepository.SalvaClaimsAsync(user, claimsToAdd);
-        if (!resultAddClaims.Succeeded)
+        var userRoles = await _authRepository.ObterRolesAsync(user);
+        if (userRoles.Contains(role))
         {
-            _notificador.Handle(new Notificacao("Falha ao salvar as permissões!"));
+            _notificador.Handle(new Notificacao("O usuário ja tem esse perfil!"));
+            return false;
+        }
+
+        var resultAddRole = await _authRepository.SalvaRoleAsync(user, role);
+        if (!resultAddRole.Succeeded)
+        {
+            _notificador.Handle(new Notificacao("Falha ao salvar o perfil!"));
             return false;
         }
         return true;
     }
 
-    private async Task<List<Claim>?> GeraListaDeClaims(IdentityUser user, RegisterUserViewModel registerUser)
-    {
-        var claims = await _authRepository.ObterClaimsAsync(user);
-        var systemClaims = claims.FirstOrDefault(c =>
-            c.Type == "permission" &&
-            c.Value.StartsWith(registerUser.System.ToUpper())
-            );
+    //private async Task<bool> SalvaUserClaims(IdentityUser user, RegisterUserViewModel registerUser)
+    //{
+    //    var claimsToAdd = await GeraListaDeClaims(user, registerUser);
+    //    if (claimsToAdd == null) return false;
 
-        if (systemClaims != null)
-        {
-            _notificador.Handle(new Notificacao("O usuário ja tem acesso a esse sistema!"));
-            return null;
-        }
+    //    var resultAddClaims = await _authRepository.SalvaClaimsAsync(user, claimsToAdd);
+    //    if (!resultAddClaims.Succeeded)
+    //    {
+    //        _notificador.Handle(new Notificacao("Falha ao salvar as permissões!"));
+    //        return false;
+    //    }
+    //    return true;
+    //}
 
-        var permissions = ResolvePermissions(registerUser.System, registerUser.Profile);
-        if (permissions == null) return null;
+    //private async Task<List<Claim>?> GeraListaDeClaims(IdentityUser user, RegisterUserViewModel registerUser)
+    //{
+    //    var claims = await _authRepository.ObterClaimsAsync(user);
+    //    var systemClaims = claims.FirstOrDefault(c =>
+    //        c.Type == "permission" &&
+    //        c.Value.StartsWith(registerUser.System.ToUpper())
+    //        );
 
-        return permissions.Select(p => new Claim("permission", p))
-            .ToList();
-    }
-    private IEnumerable<string>? ResolvePermissions(string system, string profile)
-    {
-        system = system.ToUpper();
-        profile = profile.ToUpper();
+    //    if (systemClaims != null)
+    //    {
+    //        _notificador.Handle(new Notificacao("O usuário ja tem acesso a esse sistema!"));
+    //        return null;
+    //    }
 
-        if (!_permissions.Systems.TryGetValue(system, out var profiles))
-        {
-            _notificador.Handle(new Notificacao("Sistema não encontrado!"));
-            return null;
-        }
-        if (!profiles.TryGetValue(profile, out var permissions))
-        {
-            _notificador.Handle(new Notificacao("Permissões não encontradas para esse perfil"));
-            return null;
-        }
+    //    var permissions = ResolvePermissions(registerUser.System, registerUser.Profile);
+    //    if (permissions == null) return null;
 
-        return permissions;
-    }
-    private async Task<LoginResponseViewModel> GerarJwt(IdentityUser user)
-    {
-        var claims = await ObterClaimsUsuarioAsync(user);
-        var token = GerarToken(claims);
+    //    return permissions.Select(p => new Claim("permission", p))
+    //        .ToList();
+    //}
 
-        return MontarLoginResponse(user, token, claims);
-    }
-    private async Task<List<Claim>> ObterClaimsUsuarioAsync(IdentityUser? user)
-    {
-        var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id)
-            };
+    //private IEnumerable<string>? ResolvePermissions(string system, string profile)
+    //{
+    //    system = system.ToUpper();
+    //    profile = profile.ToUpper();
 
-        claims.AddRange(await _authRepository.ObterClaimsAsync(user));
+    //    if (!_permissions.Systems.TryGetValue(system, out var profiles))
+    //    {
+    //        _notificador.Handle(new Notificacao("Sistema não encontrado!"));
+    //        return null;
+    //    }
+    //    if (!profiles.TryGetValue(profile, out var permissions))
+    //    {
+    //        _notificador.Handle(new Notificacao("Permissões não encontradas para esse perfil"));
+    //        return null;
+    //    }
 
-        var roles = await _authRepository.ObterRolesAsync(user);
-        claims.AddRange(roles.Select(role => new Claim("role", role)));
+    //    return permissions;
+    //}
+    //private async Task<LoginResponseViewModel> GerarJwt(IdentityUser user, IList<Claim> claims)
+    //{
+    //    var token = GerarToken(claims);
+    //    return MontarLoginResponse(user, token, claims);
+    //}
 
-        return claims;
-    }
+    //private async Task<List<Claim>> ObterClaimsUsuarioAsync(IdentityUser? user)
+    //{
+    //    var claims = new List<Claim>
+    //        {
+    //            new Claim(ClaimTypes.NameIdentifier, user.Id)
+    //        };
+
+    //    claims.AddRange(await _authRepository.ObterClaimsAsync(user));
+
+    //    var roles = await _authRepository.ObterRolesAsync(user);
+    //    claims.AddRange(roles.Select(role => new Claim("role", role)));
+
+    //    return claims;
+    //}
+
     private string GerarToken(IEnumerable<Claim> claims)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
@@ -347,26 +421,5 @@ public class AuthService : IAuthService
                 }).ToList()
             }
         };
-    }
-
-    public async Task<IEnumerable<AuthUserViewModel>> ListarAuthUser()
-    {
-        var usuarios = await _authRepository.ObterTodosAuthUserAsync();
-        var authUser = new List<AuthUserViewModel>();
-        foreach (var user in usuarios)
-        {
-            authUser.Add(new AuthUserViewModel
-            {
-                Email = user.Email,
-                UserName = user.UserName,
-            });
-        }
-        if (authUser.Count == 0 || authUser == null) 
-        {
-            _notificador.Handle(new Notificacao("Nenhum usuario encontrado!"));
-            return default;
-        }
-
-        return authUser;
     }
 }

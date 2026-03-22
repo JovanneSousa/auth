@@ -1,0 +1,49 @@
+﻿@using MudBlazor
+
+@inject IDialogService DialogService;
+@inject HttpClient httpClient;
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Criar Usuário</MudText>
+        <MudTextField @bind-Value="Model.Nome" Label="Nome" Required="true" />
+        <MudTextField @bind-Value="Model.Email" Label="Email" Required="true" />
+        <MudTextField @bind-Value="Model.Password" Label="Senha" InputType="InputType.Password" />
+        <MudTextField @bind-Value="Model.ConfirmPassword" Label="Confirmar Senha" InputType="InputType.Password" />
+        <MudTextField @bind-Value="Model.System" Label="Sistemas" />
+        <MudTextField @bind-Value="Model.Profile" Label="Perfil" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public RegisterUserViewModel Model { get; set; } = new();
+
+    private async Task Submit()
+    {
+        await SalvarUsuario(Model);
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task SalvarUsuario(RegisterUserViewModel user, CancellationToken ct = default)
+    {
+        var result = await httpClient.PostAsJsonAsync<RegisterUserViewModel>("/api/auth/registrar", user, ct);
+        if(result.StatusCode == System.Net.HttpStatusCode.Created || result.StatusCode == System.Net.HttpStatusCode.OK)
+        {
+            Console.WriteLine("Sucesso");
+        }
+    } 
+}

@@ -1,4 +1,4 @@
-﻿namespace Auth.Application.DTOs
+﻿namespace Auth.Domain.DTOs
 {
     public class AuthUserViewModel
     {

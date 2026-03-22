@@ -7,11 +7,14 @@ namespace Auth.Application.Repositories;
 public class AuthRepository : IAuthRepository
 {
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
     public AuthRepository(
-        UserManager<IdentityUser> userManager
+        UserManager<IdentityUser> userManager,
+        RoleManager<IdentityRole> roleManager
         )
     {
         _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     public async Task<IdentityResult> AdicionarUsuarioAsync(IdentityUser user, string password) =>
@@ -28,6 +31,13 @@ public class AuthRepository : IAuthRepository
 
     public async Task<IList<string>> ObterRolesAsync(IdentityUser user) =>
         await _userManager.GetRolesAsync(user);
+    public async Task<IdentityRole> ObterRolePorNomeAsync(string nome) =>
+        await _roleManager.FindByNameAsync(nome);
+    public async Task<IdentityResult> SalvaRoleAsync(IdentityUser user, string role) =>
+        await _userManager.AddToRoleAsync(user, role);
+    public async Task<IList<Claim>> ObterClaimsRoleAsync(IdentityRole role) =>
+        await _roleManager.GetClaimsAsync(role);
+
 
     public async Task<string> GeraTokenReset(IdentityUser user) =>
         await _userManager.GeneratePasswordResetTokenAsync(user);

@@ -1,4 +1,4 @@
-﻿using Auth.Api.Data;
+﻿using Auth.Application.Data;
 using Auth.Infra.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -13,7 +13,7 @@ namespace Auth.Configuration
         {
             builder.Services.AddIdentity<IdentityUser, IdentityRole>()
                 .AddRoles<IdentityRole>()
-                .AddEntityFrameworkStores<ApiDbContext>()
+                .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
             var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();

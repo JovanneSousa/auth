@@ -1,6 +1,8 @@
 ﻿@page "/usuarios"
-@inject HttpClient Http
 
+@inject IDialogService DialogService
+
+@using Auth.Client.Dialogs;
 @using System.Net.Http.Json
 @inject HttpClient httpClient
 
@@ -11,7 +13,7 @@
 {
     <MudDataGrid 
         @ref="_elementGrid" 
-        T="AuthUserViewModel" 
+        T="RegisterUserViewModel"
         Items="@Usuarios" 
         EditMode="@DataGridEditMode.Form"
         ReadOnly="false"
@@ -35,11 +37,14 @@
             <TemplateColumn hidden="true">
                 <EditTemplate>
                     @* Conteúdo extra exibido dentro do form de edição *@
-                    <MudText Typo="Typo.h6" Class="mb-2">Editar Usuário</MudText>
+                    <MudText Typo="Typo.h6" Class="mb-2">@titleModal()</MudText>
                 </EditTemplate>
             </TemplateColumn>
             <PropertyColumn Property="x => x.Email" />
-            <PropertyColumn Property="x => x.UserName" />
+            <PropertyColumn Property="x => x.Nome" />
+            <PropertyColumn Property="x => x.Profile" />
+            <PropertyColumn Property="x => x.System" />
+
             <TemplateColumn Title="Ações" CellClass="d-flex justify-between">
                 <CellTemplate>
                     <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
@@ -48,61 +53,62 @@
             </TemplateColumn>
         </Columns>
     </MudDataGrid>
+
 }
 
 @code {
-    private List<AuthUserViewModel> Usuarios;
+    private List<RegisterUserViewModel> Usuarios;
     private List<string> _events = new();
-    private MudDataGrid<AuthUserViewModel> _elementGrid = default!;
+    private MudDataGrid<RegisterUserViewModel> _elementGrid = default!;
+    private bool isCreating;
+    private string titleModal() => 
+        isCreating ? "Criar um novo usuário" : "Editar usuário";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            ResponsePayload<IEnumerable<AuthUserViewModel>> response = 
-                await httpClient.GetFromJsonAsync<ResponsePayload<IEnumerable<AuthUserViewModel>>>("api/auth/listar-usuarios");
+            ResponsePayload<IEnumerable<RegisterUserViewModel>> response =
+                await httpClient.GetFromJsonAsync<ResponsePayload<IEnumerable<RegisterUserViewModel>>>("api/auth/listar-usuarios");
             Usuarios = response.Data.ToList();
         } catch
         {
-            Usuarios = new List<AuthUserViewModel>();
+            Usuarios = new List<RegisterUserViewModel>();
         }
     }
 
     private async Task NewItemAsync()
     {
-        var elem = new AuthUserViewModel();
-            await _elementGrid.SetEditingItemAsync(elem);
+        var elem = new RegisterUserViewModel();
+        isCreating = true;
+        await DialogService.ShowAsync<CreateUserDialog>();
     }
 
-    private void DeleteItem(AuthUserViewModel item)
+    private void DeleteItem(RegisterUserViewModel item)
     {
         Usuarios.Remove(item);
     }
 
     // events
-    private void StartedEditingItem(AuthUserViewModel item)
+    private void StartedEditingItem(RegisterUserViewModel item)
     {
         _events.Insert(0, $"Event = StartedEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
     }
 
-    private void CanceledEditingItem(AuthUserViewModel item)
+    private void CanceledEditingItem(RegisterUserViewModel item)
     {
         // update code for backing data here if needed
         _events.Insert(0, $"Event = CanceledEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+        isCreating = false;
     }
 
-    private Task<DataGridEditFormAction> CommittedItemChanges(AuthUserViewModel item)
+    private Task<DataGridEditFormAction> CommittedItemChanges(RegisterUserViewModel item)
     {
         // update code for the backing data here
         _events.Insert(0, $"Event = CommittedItemChanges, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+        isCreating = false;
 
         return Task.FromResult(DataGridEditFormAction.Close);
-    }
-    
-    public class AuthUserViewModel
-    {
-        public string UserName { get; set; }
-        public string Email { get; set; }
     }
 
     public class ResponsePayload<T>
