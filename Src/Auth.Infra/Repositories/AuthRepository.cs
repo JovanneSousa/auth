@@ -10,10 +10,10 @@ namespace Auth.Infra.Repositories
     public class AuthRepository : BaseRepository, IAuthRepository
     {
         private readonly UserManager<IdentityUser> _userManager;
-        private readonly RoleManager<ApplicationRole> _roleManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         public AuthRepository(
             UserManager<IdentityUser> userManager,
-            RoleManager<ApplicationRole> roleManager
+            RoleManager<IdentityRole> roleManager
             )
         {
             _userManager = userManager;
