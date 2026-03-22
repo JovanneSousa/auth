@@ -16,8 +16,8 @@ namespace Auth.Infra.Interfaces
 
         Task<IdentityResult> SalvaRoleAsync(IdentityUser user, string role);
         Task<IList<string>> ObterRolesAsync(IdentityUser user);
-        Task<ApplicationRole> ObterRolePorNomeAsync(string nome);
-        Task<IList<Claim>> ObterClaimsRoleAsync(ApplicationRole role);
+        Task<IdentityRole> ObterRolePorNomeAsync(string nome);
+        Task<IList<Claim>> ObterClaimsRoleAsync(IdentityRole role);
 
         Task<bool> isEmailConfirmed(IdentityUser user);
 
