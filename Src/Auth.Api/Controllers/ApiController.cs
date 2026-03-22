@@ -1,6 +1,5 @@
 ﻿using Auth.Domain.Entities;
-using Auth.Domain.Interfaces;
-using Auth.Infra.Notifications;
+using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
