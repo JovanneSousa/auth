@@ -130,7 +130,9 @@ public class AuthService : IAuthService
         var claims = await GerarListaDeClaimsPorUserRole(user);
         if (!await UsuarioTemPermissao(user, loginUser.System.ToUpper(), claims))
             return null;
-        
+
+        claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
+
         await _signInManager.SignInAsync(user, false);
 
         var token = GerarToken(claims);
