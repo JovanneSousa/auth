@@ -9,11 +9,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Auth.Infra.Identity;
 using FV = FluentValidation.Results;
-using Auth.Domain.Interfaces;
-using Auth.Infra.Interfaces;
 using Auth.Domain.DTOs;
+using Auth.Infra.Interfaces;
+using Auth.Infra.Identity;
 
 namespace Auth.Application.Services;
 

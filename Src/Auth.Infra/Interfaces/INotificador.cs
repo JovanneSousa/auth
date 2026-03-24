@@ -1,6 +1,6 @@
 ﻿using Auth.Domain.Entities;
 
-namespace Auth.Domain.Interfaces;
+namespace Auth.Infra.Interfaces;
 
 public interface INotificador
 {
