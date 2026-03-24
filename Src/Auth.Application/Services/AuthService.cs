@@ -1,5 +1,4 @@
 ﻿using Auth.Domain.Entities;
-using Auth.Application.Repositories;
 using Bus;
 using FluentValidation.Results;
 using Messages;
@@ -11,10 +10,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Auth.Infra.Identity;
-using Auth.Infra.Notifications;
 using FV = FluentValidation.Results;
-using Auth.Domain.DTOs;
 using Auth.Domain.Interfaces;
+using Auth.Infra.Interfaces;
+using Auth.Domain.DTOs;
 
 namespace Auth.Application.Services;
 
@@ -132,7 +131,9 @@ public class AuthService : IAuthService
         var claims = await GerarListaDeClaimsPorUserRole(user);
         if (!await UsuarioTemPermissao(user, loginUser.System.ToUpper(), claims))
             return null;
-        
+
+        claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
+
         await _signInManager.SignInAsync(user, false);
 
         var token = GerarToken(claims);
