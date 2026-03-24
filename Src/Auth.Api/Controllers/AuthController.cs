@@ -13,7 +13,6 @@ namespace fin_api.Controllers
     {
         private readonly IAuthService _authService;
 
-
         public AuthController
             (
             IOptions<JwtSettings> jwtSettings,

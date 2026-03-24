@@ -12,6 +12,8 @@ public static class DiConfig
         builder.Services.AddScoped<INotificador, Notificador>();
         builder.Services.AddScoped<IAuthRepository, AuthRepository>();
         builder.Services.AddScoped<IAuthService, AuthService>();
+        builder.Services.AddScoped<ISystemRepository, SystemRepository>();
+        builder.Services.AddScoped<ISystemService, SystemService>();
 
         return builder;
     }
