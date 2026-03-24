@@ -1,5 +1,4 @@
 ﻿using Auth.Domain.Entities;
-using Auth.Domain.Interfaces;
 using Auth.Infra.Interfaces;
 
 namespace Auth.Application.Services
