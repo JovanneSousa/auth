@@ -11,7 +11,7 @@ namespace Auth.Configuration
     {
         public static WebApplicationBuilder AddIdentityConfig(this WebApplicationBuilder builder)
         {
-            builder.Services.AddIdentity<IdentityUser, ApplicationRole>()
+            builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
                 .AddRoles<ApplicationRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();

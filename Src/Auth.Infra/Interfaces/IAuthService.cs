@@ -9,4 +9,5 @@ public interface IAuthService
     Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data);
     Task<bool> RecuperarSenha(ResetPassViewModel data);
     Task<IEnumerable<AuthUserViewModel>> ListarAuthUser();
+    Task<UserDetailsViewModel> ObterUsuarioPorId(string id);
 }

@@ -1,0 +1,48 @@
+﻿@using MudBlazor
+
+@inject IDialogService DialogService;
+@inject HttpClient httpClient;
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="Model.Nome" Label="Nome" Required="true" />
+        <MudTextField @bind-Value="Model.Email" Label="Email" Required="true" />
+        @* <MudTextField @bind-Value="Model.Password" Label="Senha" InputType="InputType.Password" />
+        <MudTextField @bind-Value="Model.ConfirmPassword" Label="Confirmar Senha" InputType="InputType.Password" /> *@
+        <MudTable Items="@Model.Systems">
+            <HeaderContent>
+                <MudTh>Sistema</MudTh>
+                <MudTh>Perfil</MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>@context.Permissoes.FirstOrDefault()?.Name</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public UserDetailsViewModel Model { get; set; } = new();
+
+    private async Task Submit()
+    {
+        //await SalvarUsuario(Model);
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

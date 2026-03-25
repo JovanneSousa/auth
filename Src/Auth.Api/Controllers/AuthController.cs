@@ -46,5 +46,9 @@ namespace fin_api.Controllers
         [HttpGet("listar-usuarios")]
         public async Task<ActionResult<IEnumerable<AuthUserViewModel>>> ListarUsuarios()
             => CustomResponse(await _authService.ListarAuthUser());
+
+        [HttpGet("details-user/{id}")]
+        public async Task<ActionResult<UserDetailsViewModel>> ObterUsuarioPorId(string id) 
+            => CustomResponse(await _authService.ObterUsuarioPorId(id));
     }
 }

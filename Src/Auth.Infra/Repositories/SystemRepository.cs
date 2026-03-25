@@ -1,7 +1,9 @@
 ﻿using Auth.Application.Data;
 using Auth.Application.Repositories;
 using Auth.Domain.Entities;
+using Auth.Infra.Identity;
 using Auth.Infra.Interfaces;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Auth.Infra.Repositories
@@ -25,5 +27,13 @@ namespace Auth.Infra.Repositories
 
         public async Task<IEnumerable<SystemEntity>> ObterTodosSistemasAsync()
             => await ExecuteAsync(async () => await _context.SystemEntity.ToListAsync());
+
+        public async Task<IEnumerable<SystemEntity>> ObterSistemasPorRolesAsync(IEnumerable<string> systemIds)
+        {
+            return await ExecuteAsync(async () => 
+                    await _context.SystemEntity
+                        .Where(s => systemIds.Contains(s.Id))
+                        .ToListAsync());
+        }
     }
 }

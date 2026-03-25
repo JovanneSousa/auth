@@ -1,4 +1,5 @@
-﻿using Auth.Application.Repositories;
+﻿using Auth.Application.Data;
+using Auth.Application.Repositories;
 using Auth.Infra.Identity;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -9,47 +10,57 @@ namespace Auth.Infra.Repositories
 {
     public class AuthRepository : BaseRepository, IAuthRepository
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<ApplicationRole> _roleManager;
+        private readonly ApplicationDbContext _context;
         public AuthRepository(
-            UserManager<IdentityUser> userManager,
+            UserManager<ApplicationUser> userManager,
             RoleManager<ApplicationRole> roleManager
-            )
+,
+            ApplicationDbContext context)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _context = context;
         }
 
-        public async Task<IdentityResult> AdicionarUsuarioAsync(IdentityUser user, string password) =>
+        public async Task<IdentityResult> AdicionarUsuarioAsync(ApplicationUser user, string password) =>
             await ExecuteAsync(async () => await _userManager.CreateAsync(user, password));
-        public async Task<IdentityUser?> ObterUsuarioPorEmailAsync(string email) =>
+        public async Task<ApplicationUser?> ObterUsuarioPorEmailAsync(string email) =>
             await ExecuteAsync(async () => await _userManager.FindByEmailAsync(email));
-        public async Task<IdentityResult> DeleteAsync(IdentityUser usuario) =>
+        public async Task<ApplicationUser?> ObterUsuarioPorIdAsync(string id) =>
+            await ExecuteAsync(async () => await _userManager.FindByIdAsync(id));
+        public async Task<IdentityResult> DeleteAsync(ApplicationUser usuario) =>
             await ExecuteAsync(async () => await _userManager.DeleteAsync(usuario));
-        public async Task<IEnumerable<IdentityUser>> ObterTodosAuthUserAsync() =>
+        public async Task<IEnumerable<ApplicationUser>> ObterTodosAuthUserAsync() =>
             await ExecuteAsync(async () => await _userManager.Users.AsNoTracking().ToListAsync());
 
-        public async Task<IList<Claim>> ObterClaimsAsync(IdentityUser user) =>
+        public async Task<IList<Claim>> ObterClaimsAsync(ApplicationUser user) =>
             await ExecuteAsync(async () => await _userManager.GetClaimsAsync(user));
-        public async Task<IdentityResult> SalvaClaimsAsync(IdentityUser user, IList<Claim> claims) =>
+        public async Task<IdentityResult> SalvaClaimsAsync(ApplicationUser user, IList<Claim> claims) =>
             await ExecuteAsync(async () => await _userManager.AddClaimsAsync(user, claims));
 
-        public async Task<IList<string>> ObterRolesAsync(IdentityUser user) =>
+        public async Task<IList<string>> ObterNomeDasRolesPorUsuarioAsync(ApplicationUser user) =>
             await ExecuteAsync(async () => await _userManager.GetRolesAsync(user));
         public async Task<ApplicationRole> ObterRolePorNomeAsync(string nome) =>
             await ExecuteAsync(async () => await _roleManager.FindByNameAsync(nome));
-        public async Task<IdentityResult> SalvaRoleAsync(IdentityUser user, string role) =>
+        public async Task<IEnumerable<ApplicationRole>> ObterSystemIdDasRolesPorUsuarioAsync(IEnumerable<string> nomes)
+            => await ExecuteAsync(async () =>
+                await _context.Roles
+                    .Where(c => nomes.Contains(c.Name))
+                    .ToListAsync());
+        public async Task<IdentityResult> SalvaRoleAsync(ApplicationUser user, string role) =>
             await ExecuteAsync(async () => await _userManager.AddToRoleAsync(user, role));
         public async Task<IList<Claim>> ObterClaimsRoleAsync(ApplicationRole role) =>
             await ExecuteAsync(async () => await _roleManager.GetClaimsAsync(role));
 
-        public async Task<string> GeraTokenReset(IdentityUser user) =>
+        public async Task<string> GeraTokenReset(ApplicationUser user) =>
             await ExecuteAsync(async () => await _userManager.GeneratePasswordResetTokenAsync(user));
 
-        public async Task<bool> isEmailConfirmed(IdentityUser user) =>
+        public async Task<bool> isEmailConfirmed(ApplicationUser user) =>
             await ExecuteAsync(async () => await _userManager.IsEmailConfirmedAsync(user));
 
-        public async Task<IdentityResult> ResetarSenha(IdentityUser user, string token, string newPassword) =>
+        public async Task<IdentityResult> ResetarSenha(ApplicationUser user, string token, string newPassword) =>
             await ExecuteAsync(async () => await _userManager.ResetPasswordAsync(user, token, newPassword));
     }
 }

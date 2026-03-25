@@ -21,21 +21,22 @@ public class AuthService : IAuthService
     private readonly IAuthRepository _authRepository;
     private readonly INotificador _notificador;
     private readonly JwtSettings _jwtSettings;
-    private readonly SignInManager<IdentityUser> _signInManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly ISystemService _systemService;
     private readonly PermissionModel _permissions;
     private readonly IMessageBus _messageBus;
     private readonly string _frontUrl;
 
     public AuthService(
-        IAuthRepository authRepository, 
+        IAuthRepository authRepository,
         INotificador notificador,
         IOptions<JwtSettings> jwtSettings,
         IOptions<RabbitSettings> rabbitSettings,
-        SignInManager<IdentityUser> signInManager,
+        SignInManager<ApplicationUser> signInManager,
         PermissionModel permissions,
         IMessageBus messageBus,
-        IOptions<FrontEndSettings> settings
-        )
+        IOptions<FrontEndSettings> settings,
+        ISystemService systemService)
     {
         _permissions = permissions;
         _authRepository = authRepository;
@@ -44,6 +45,27 @@ public class AuthService : IAuthService
         _signInManager = signInManager;
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
+        _systemService = systemService;
+    }
+
+    public async Task<UserDetailsViewModel> ObterUsuarioPorId(string id)
+    {
+        var usuario = await _authRepository.ObterUsuarioPorIdAsync(id);
+        if(usuario == null)
+        {
+            _notificador.Handle(new Notificacao("Usuário não encontrado!"));
+            return default;
+        }
+        var roles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(usuario);
+        var sistemas = await _systemService.ObterSistemasPorRoleNameAsync(roles);
+
+
+        return new UserDetailsViewModel
+                    {
+                        Email = usuario.Email,
+                        Nome = usuario.UserName,
+                        Systems = sistemas
+                    };
     }
 
     public async Task<IEnumerable<AuthUserViewModel>> ListarAuthUser()
@@ -53,12 +75,15 @@ public class AuthService : IAuthService
 
         foreach (var user in usuarios)
         {
-            var roles = await _authRepository.ObterRolesAsync(user);
-            var claims = await _authRepository.ObterClaimsAsync(user);
+            //var roles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user);
+            //var claims = await _authRepository.ObterClaimsAsync(user);
+            //var sistemas = await _systemService.ObterSistemasPorRoleNameAsync(roles);
             authUser.Add(new AuthUserViewModel
             {
+                Id = user.Id,
                 Email = user.Email,
                 UserName = user.UserName,
+                //Systems = sistemas
             });
         }
         if (authUser.Count == 0 || authUser == null)
@@ -75,11 +100,11 @@ public class AuthService : IAuthService
         var usuarioExistente = 
             await _authRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
 
-        IdentityUser user;
+        ApplicationUser user;
 
         if (usuarioExistente == null)
         {
-            user = new IdentityUser
+            user = new ApplicationUser
             {
                 UserName = registerUser.Email,
                 Email = registerUser.Email,
@@ -186,9 +211,9 @@ public class AuthService : IAuthService
         return true;
     }
 
-    private async Task<IList<Claim>> GerarListaDeClaimsPorUserRole(IdentityUser user)
+    private async Task<IList<Claim>> GerarListaDeClaimsPorUserRole(ApplicationUser user)
     {
-        var userRoles = await _authRepository.ObterRolesAsync(user);
+        var userRoles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user);
         var roleClaims = new List<Claim>();
 
         foreach (var roleName in userRoles)
@@ -203,7 +228,7 @@ public class AuthService : IAuthService
         return roleClaims;
     }
 
-    private async Task<bool> UsuarioTemPermissao(IdentityUser user, string system, IList<Claim> claims)
+    private async Task<bool> UsuarioTemPermissao(ApplicationUser user, string system, IList<Claim> claims)
     {
         var hasPermission = claims.Any(c =>
             c.Type == "permission" &&
@@ -261,7 +286,7 @@ public class AuthService : IAuthService
         }
     }
 
-    private async Task<bool> CriaUserIdentity(IdentityUser user, string password, RegisterUserViewModel registerUser)
+    private async Task<bool> CriaUserIdentity(ApplicationUser user, string password, RegisterUserViewModel registerUser)
     {
         var result = await _authRepository.AdicionarUsuarioAsync(user, password);
 
@@ -290,9 +315,9 @@ public class AuthService : IAuthService
             }
         };
 
-    private async Task<bool> SalvaUserRoles(IdentityUser user, string role)
+    private async Task<bool> SalvaUserRoles(ApplicationUser user, string role)
     {
-        var userRoles = await _authRepository.ObterRolesAsync(user);
+        var userRoles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user);
         if (userRoles.Contains(role))
         {
             _notificador.Handle(new Notificacao("O usuário ja tem esse perfil!"));
@@ -308,7 +333,7 @@ public class AuthService : IAuthService
         return true;
     }
 
-    //private async Task<bool> SalvaUserClaims(IdentityUser user, RegisterUserViewModel registerUser)
+    //private async Task<bool> SalvaUserClaims(ApplicationUser user, RegisterUserViewModel registerUser)
     //{
     //    var claimsToAdd = await GeraListaDeClaims(user, registerUser);
     //    if (claimsToAdd == null) return false;
@@ -322,7 +347,7 @@ public class AuthService : IAuthService
     //    return true;
     //}
 
-    //private async Task<List<Claim>?> GeraListaDeClaims(IdentityUser user, RegisterUserViewModel registerUser)
+    //private async Task<List<Claim>?> GeraListaDeClaims(ApplicationUser user, RegisterUserViewModel registerUser)
     //{
     //    var claims = await _authRepository.ObterClaimsAsync(user);
     //    var systemClaims = claims.FirstOrDefault(c =>
@@ -361,13 +386,13 @@ public class AuthService : IAuthService
 
     //    return permissions;
     //}
-    //private async Task<LoginResponseViewModel> GerarJwt(IdentityUser user, IList<Claim> claims)
+    //private async Task<LoginResponseViewModel> GerarJwt(ApplicationUser user, IList<Claim> claims)
     //{
     //    var token = GerarToken(claims);
     //    return MontarLoginResponse(user, token, claims);
     //}
 
-    //private async Task<List<Claim>> ObterClaimsUsuarioAsync(IdentityUser? user)
+    //private async Task<List<Claim>> ObterClaimsUsuarioAsync(ApplicationUser? user)
     //{
     //    var claims = new List<Claim>
     //        {
@@ -376,7 +401,7 @@ public class AuthService : IAuthService
 
     //    claims.AddRange(await _authRepository.ObterClaimsAsync(user));
 
-    //    var roles = await _authRepository.ObterRolesAsync(user);
+    //    var roles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user);
     //    claims.AddRange(roles.Select(role => new Claim("role", role)));
 
     //    return claims;
@@ -402,7 +427,7 @@ public class AuthService : IAuthService
         return tokenHandler.WriteToken(token);
     }
 
-    private LoginResponseViewModel MontarLoginResponse(IdentityUser user, string token, IEnumerable<Claim> claims)
+    private LoginResponseViewModel MontarLoginResponse(ApplicationUser user, string token, IEnumerable<Claim> claims)
     {
         return new LoginResponseViewModel
         {

@@ -2,10 +2,9 @@
 
 namespace Auth.Domain.DTOs
 {
-    public class AuthUserViewModel
+    public class UserDetailsViewModel
     {
-        public string Id { get; set; }
-        public string UserName { get; set; }
+        public string Nome { get; set; }
         public string Email { get; set; }
         public IEnumerable<SystemViewModel> Systems { get; set; }
     }
