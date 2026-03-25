@@ -41,17 +41,8 @@
                     <MudText Typo="Typo.h6" Class="mb-2">@titleModal()</MudText>
                 </EditTemplate>
             </TemplateColumn>
+            <PropertyColumn Property="x => x.UserName" Title="Nome"/>
             <PropertyColumn Property="x => x.Email" />
-            <PropertyColumn Property="x => x.UserName" />
-            @* <PropertyColumn Property="x => x.Profile" /> *@
-            @* <TemplateColumn Title="Sistemas">
-                <CellTemplate Context="x">
-                    @foreach (var system in x.Item.Systems)
-                    {
-                        <div>@system.Name</div>
-                    }
-                </CellTemplate>
-            </TemplateColumn> *@
 
             <TemplateColumn Title="Ações" CellClass="d-flex justify-between">
                 <CellTemplate>

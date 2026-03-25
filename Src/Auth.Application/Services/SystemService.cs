@@ -25,8 +25,40 @@ namespace Auth.Application.Services
                 async () => await _systemRepository.AdicionarAsync(sistema));
         }
 
-        public async Task<IEnumerable<SystemEntity>> ObterTodosSistemasAsync() =>
-            await ExecuteAsync(async () => await _systemRepository.ObterTodosSistemasAsync());
+        public async Task<SystemViewModel[]> ObterTodosSistemasAsync()
+        {
+            var sistemasModel = 
+                await ExecuteAsync(async () => await _systemRepository.ObterTodosSistemasAsync());
+
+            var sistemasViewModel = await Task.WhenAll(sistemasModel.Select(async system =>
+            {
+                var roles = await ExecuteAsync(async () =>
+                    await _authRepository.ObterRolesPorSistemIdAsync(system.Id));
+
+                var permissoes = await Task.WhenAll(roles.Select(async role =>
+                {
+                    var claims = await ExecuteAsync(async () =>
+                        await _authRepository.ObterClaimsRoleAsync(role));
+
+                    return new ApplicationRoleViewModel
+                    {
+                        Id = role.Id,
+                        Name = role.Name,
+                        Claims = claims.Select(c => c.Value).ToList()
+                    };
+                }));
+
+                return new SystemViewModel
+                {
+                    Id = system.Id,
+                    Name = system.Name,
+                    Url = system.Url,
+                    Permissoes = permissoes.ToList()
+                };
+            }));
+
+            return sistemasViewModel;
+        }
 
         public async Task<IEnumerable<SystemViewModel>> ObterSistemasPorRoleNameAsync(IList<string> rolesName)
         {

@@ -1,0 +1,314 @@
+﻿@page "/sistemas"
+
+@inject IDialogService DialogService
+
+@using Auth.Client.Dialogs;
+@using System.Net.Http.Json
+@inject HttpClient httpClient
+
+@if (_sistemas == null)
+{
+    <p><em>Loading...</em></p>
+} else 
+{
+    <MudStack Spacing="4">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h5">Sistemas</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="() => OpenSistemaDialog(null)">
+                Novo sistema
+            </MudButton>
+        </MudStack>
+
+        <MudExpansionPanels MultiExpansion="true">
+            @foreach (var sistema in _sistemas)
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween"
+                                  AlignItems="AlignItems.Center" Style="width:100%; padding-right:8px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
+                                    @Initials(sistema.Name)
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight:500">@sistema.Name</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@sistema.Url</MudText>
+                                </div>
+                            </MudStack>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                                    @sistema.Permissoes.Count role(s)
+                                </MudChip>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                               Title="Editar sistema"
+                                               OnClick="() => OpenSistemaDialog(sistema)" />
+                            </MudStack>
+                        </MudStack>
+                    </TitleContent>
+
+                    <ChildContent>
+                        <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4"
+                                 ApplyEffectsToContainer="true" Color="Color.Primary">
+
+                            {{!-- ABA: ROLES E CLAIMS --}}
+                            <MudTabPanel Text="Roles e Claims">
+                                <MudStack Spacing="3">
+                                    @foreach (var role in sistema.Permissoes)
+                                    {
+                                        <MudCard Outlined="true" Elevation="0">
+                                            {{!-- Cabeçalho da role --}}
+                                            <MudCardHeader Style="padding:10px 14px; background:var(--mud-palette-background-grey)">
+                                                <CardHeaderContent>
+                                                    <MudText Typo="Typo.subtitle2">@role.Name</MudText>
+                                                </CardHeaderContent>
+                                                <CardHeaderActions>
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                                   Size="Size.Small"
+                                                                   OnClick="() => OpenRoleDialog(sistema, role)" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                                   Size="Size.Small" Color="Color.Error"
+                                                                   OnClick="() => RemoverRole(sistema, role)" />
+                                                </CardHeaderActions>
+                                            </MudCardHeader>
+
+                                            <MudCardContent Style="padding:12px 14px">
+                                                @{
+                                                    var claims = _claimsPorRole.GetValueOrDefault(role.Id, new());
+                                                }
+                                                <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">
+                                                    Claims (@claims.Count)
+                                                </MudText>
+
+                                                {{!-- Grid de claims --}}
+                                                <MudGrid Spacing="1">
+                                                    @foreach (var claim in claims)
+                                                    {
+                                                        <MudItem>
+                                                            <MudChip T="string"
+                                                                     Size="Size.Small"
+                                                                     Variant="Variant.Outlined"
+                                                                     OnClose="() => RemoverClaim(role.Id, claim)"
+                                                                     CloseIcon="@Icons.Material.Filled.Close"
+                                                                     Style="font-size:11px">
+                                                                @claim
+                                                            </MudChip>
+                                                        </MudItem>
+                                                    }
+                                                </MudGrid>
+
+                                                <MudDivider Class="my-2" />
+
+                                                {{!-- Adicionar claim inline --}}
+                                                @if (_roleComInputAberto == role.Id)
+                                                {
+                                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                        <MudTextField @bind-Value="_novaClaimTexto"
+                                                                      Placeholder="ex: usuarios:criar"
+                                                                      Variant="Variant.Outlined"
+                                                                      Margin="Margin.Dense"
+                                                                      Style="min-width:200px; font-size:12px"
+                                                                      @onkeydown="(e) => OnClaimKeyDown(e, role.Id)"
+                                                                      Immediate="true" />
+                                                        <MudIconButton Icon="@Icons.Material.Filled.Check"
+                                                                       Size="Size.Small" Color="Color.Success"
+                                                                       OnClick="() => ConfirmarClaim(role.Id)" />
+                                                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                                       Size="Size.Small"
+                                                                       OnClick="CancelarClaim" />
+                                                    </MudStack>
+                                                }
+                                                else
+                                                {
+                                                    <MudButton Size="Size.Small"
+                                                               Variant="Variant.Text"
+                                                               StartIcon="@Icons.Material.Filled.Add"
+                                                               OnClick="() => AbrirInputClaim(role.Id)">
+                                                        Adicionar claim
+                                                    </MudButton>
+                                                }
+                                            </MudCardContent>
+                                        </MudCard>
+                                    }
+
+                                    <MudStack Row="true" Justify="Justify.FlexEnd">
+                                        <MudButton Variant="Variant.Outlined"
+                                                   StartIcon="@Icons.Material.Filled.Add"
+                                                   Size="Size.Small"
+                                                   OnClick="() => OpenRoleDialog(sistema, null)">
+                                            Nova role
+                                        </MudButton>
+                                    </MudStack>
+                                </MudStack>
+                            </MudTabPanel>
+
+                            {{!-- ABA: USUÁRIOS — pronto para implementar --}}
+                            <MudTabPanel Text="Usuários">
+                                @* TODO: Buscar usuários por sistema.Id e listar aqui *@
+                                @* Sugestão de estrutura quando implementar:
+                               foreach (var usuario in _usuariosPorSistema[sistema.Id])
+                               {
+                                   <MudStack Row AlignItems="Center">
+                                       <MudAvatar>@Initials(usuario.Nome)</MudAvatar>
+                                       <div>
+                                           <MudText>@usuario.Nome</MudText>
+                                           <MudText Typo="caption">@usuario.Email</MudText>
+                                       </div>
+                                       <MudChip>@usuario.RoleNome</MudChip>
+                                   </MudStack>
+                               }
+                            *@
+                                <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center"
+                                          Style="padding: 2rem; opacity: 0.5">
+                                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" />
+                                    <MudText Typo="Typo.body2">Usuários serão listados aqui</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        Implemente a busca de usuários por sistema e vincule a uma role.
+                                    </MudText>
+                                </MudStack>
+                            </MudTabPanel>
+
+                        </MudTabs>
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    </MudStack>
+}
+
+    @code {
+    private List<SystemViewModel> _sistemas = new();
+
+    // Claims ficam separadas: não estão no DTO original, são gerenciadas localmente
+    // Quando tiver endpoint: Dictionary<roleId, List<claimValue>>
+    private Dictionary<string, List<string>> _claimsPorRole = new();
+
+    private string? _roleComInputAberto;
+    private string _novaClaimTexto = "";
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await httpClient.GetFromJsonAsync<ResponsePayload<List<SystemViewModel>>>("api/sistema");
+            _sistemas = response.Data;
+        } catch
+        {
+            Console.WriteLine("Erro");
+        }
+
+        // Inicializa o dicionário de claims vazio por role
+        // Substitua por uma chamada real quando tiver o endpoint de claims
+        foreach (var s in _sistemas)
+            foreach (var role in s.Permissoes)
+                _claimsPorRole[role.Id] = new List<string>();
+    }
+
+    // ── Claims ───────────────────────────────────────────────────────────────
+    private void AbrirInputClaim(string roleId)
+    {
+        _roleComInputAberto = roleId;
+        _novaClaimTexto = "";
+    }
+
+    private void ConfirmarClaim(string roleId)
+    {
+        var valor = _novaClaimTexto.Trim();
+        if (string.IsNullOrWhiteSpace(valor)) { CancelarClaim(); return; }
+
+        if (!_claimsPorRole.ContainsKey(roleId))
+            _claimsPorRole[roleId] = new();
+
+        if (!_claimsPorRole[roleId].Contains(valor))
+            _claimsPorRole[roleId].Add(valor);
+
+        // TODO: await SistemaService.AddClaimAsync(roleId, valor);
+        CancelarClaim();
+    }
+
+    private void CancelarClaim()
+    {
+        _roleComInputAberto = null;
+        _novaClaimTexto = "";
+    }
+
+    private async Task OnClaimKeyDown(KeyboardEventArgs e, string roleId)
+    {
+        if (e.Key == "Enter") ConfirmarClaim(roleId);
+        if (e.Key == "Escape") CancelarClaim();
+        await Task.CompletedTask;
+    }
+
+    private void RemoverClaim(string roleId, string claim)
+    {
+        if (_claimsPorRole.TryGetValue(roleId, out var lista))
+            lista.Remove(claim);
+        // TODO: await SistemaService.RemoveClaimAsync(roleId, claim);
+    }
+
+    // ── Roles ────────────────────────────────────────────────────────────────
+    private void RemoverRole(SystemViewModel sistema, ApplicationRoleViewModel role)
+    {
+        sistema.Permissoes.Remove(role);
+        _claimsPorRole.Remove(role.Id);
+        // TODO: await SistemaService.DeleteRoleAsync(role.Id);
+    }
+
+    // ── Dialogs ──────────────────────────────────────────────────────────────
+    private async Task OpenSistemaDialog(SystemViewModel? sistema)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Sistema"] = sistema ?? new SystemViewModel { Permissoes = new() }
+        };
+        var dialog = await DialogService.ShowAsync<SistemaDialog>(
+            sistema is null ? "Novo sistema" : "Editar sistema", parameters);
+
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is SystemViewModel s)
+        {
+            if (!_sistemas.Any(x => x.Id == s.Id))
+                _sistemas.Add(s);
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenRoleDialog(SystemViewModel sistema, ApplicationRoleViewModel? role)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Role"] = role ?? new ApplicationRoleViewModel()
+        };
+        var dialog = await DialogService.ShowAsync<RoleDialog>(
+            role is null ? "Nova role" : "Editar role", parameters);
+
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is ApplicationRoleViewModel r)
+        {
+            if (!sistema.Permissoes.Any(x => x.Id == r.Id))
+            {
+                sistema.Permissoes.Add(r);
+                _claimsPorRole[r.Id] = new();
+            }
+            StateHasChanged();
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    private static string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpper()
+            : name[..Math.Min(2, name.Length)].ToUpper();
+    }
+
+    public class ResponsePayload<T>
+    {
+        public bool Success { get; set; }
+        public T Data { get; set; }
+    }
+}

@@ -63,7 +63,7 @@ public class AuthService : IAuthService
         return new UserDetailsViewModel
                     {
                         Email = usuario.Email,
-                        Nome = usuario.UserName,
+                        Nome = usuario.Nome,
                         Systems = sistemas
                     };
     }
@@ -82,8 +82,7 @@ public class AuthService : IAuthService
             {
                 Id = user.Id,
                 Email = user.Email,
-                UserName = user.UserName,
-                //Systems = sistemas
+                UserName = user.Nome,
             });
         }
         if (authUser.Count == 0 || authUser == null)

@@ -1,4 +1,5 @@
-﻿using Auth.Domain.Entities;
+﻿using Auth.Domain.DTOs;
+using Auth.Domain.Entities;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,7 +23,7 @@ namespace Auth.Api.Controllers
             => CustomResponse(await _systemService.AdicionaSistemaAsync(sistema));
 
         [HttpGet]
-        public async Task<ActionResult<SystemEntity>> ListarSistemas()
+        public async Task<ActionResult<SystemViewModel>> ListarSistemas()
             => CustomResponse(await _systemService.ObterTodosSistemasAsync());
     }
 }
