@@ -73,7 +73,7 @@
 
                                             <MudCardContent Style="padding:12px 14px">
                                                 @{
-                                                    var claims = _claimsPorRole.GetValueOrDefault(role.RoleId, new());
+                                                    var claims = _claimsPorRole.GetValueOrDefault(role.Id, new());
                                                 }
                                                 <MudText Typo="Typo.overline" Color="Color.Secondary" Class="mb-2">
                                                     Claims (@claims.Count)
@@ -86,7 +86,7 @@
                                                             <MudChip T="string"
                                                                      Size="Size.Small"
                                                                      Variant="Variant.Outlined"
-                                                                     OnClose="() => RemoverClaim(role.RoleId, claim)"
+                                                                     OnClose="() => RemoverClaim(role.Id, claim)"
                                                                      CloseIcon="@Icons.Material.Filled.Close"
                                                                      Style="font-size:11px">
                                                                 @claim
@@ -97,7 +97,7 @@
 
                                                 <MudDivider Class="my-2" />
 
-                                                @if (_roleComInputAberto == role.RoleId)
+                                                @if (_roleComInputAberto == role.Id)
                                                 {
                                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                                         <MudTextField @bind-Value="_novaClaimTexto"
@@ -105,11 +105,11 @@
                                                                       Variant="Variant.Outlined"
                                                                       Margin="Margin.Dense"
                                                                       Style="min-width:200px; font-size:12px"
-                                                                      @onkeydown="(e) => OnClaimKeyDown(e, role.RoleId)"
+                                                                      @onkeydown="(e) => OnClaimKeyDown(e, role.Id)"
                                                                       Immediate="true" />
                                                         <MudIconButton Icon="@Icons.Material.Filled.Check"
                                                                        Size="Size.Small" Color="Color.Success"
-                                                                       OnClick="() => ConfirmarClaim(role.RoleId)" />
+                                                                       OnClick="() => ConfirmarClaim(role.Id)" />
                                                         <MudIconButton Icon="@Icons.Material.Filled.Close"
                                                                        Size="Size.Small"
                                                                        OnClick="CancelarClaim" />
@@ -120,7 +120,7 @@
                                                     <MudButton Size="Size.Small"
                                                                Variant="Variant.Text"
                                                                StartIcon="@Icons.Material.Filled.Add"
-                                                               OnClick="() => AbrirInputClaim(role.RoleId)">
+                                                               OnClick="() => AbrirInputClaim(role.Id)">
                                                         Adicionar claim
                                                     </MudButton>
                                                 }
@@ -198,7 +198,7 @@
         // Substitua por uma chamada real quando tiver o endpoint de claims
         foreach (var s in _sistemas)
             foreach (var role in s.Permissoes)
-                _claimsPorRole[role.RoleId] = role.Claims ?? new List<string>();
+                _claimsPorRole[role.Id] = role.Claims ?? new List<string>();
     }
 
     // ── Claims ───────────────────────────────────────────────────────────────
@@ -247,8 +247,8 @@
     private void RemoverRole(SystemViewModel sistema, ApplicationRoleViewModel role)
     {
         sistema.Permissoes.Remove(role);
-        _claimsPorRole.Remove(role.RoleId);
-        // TODO: await SistemaService.DeleteRoleAsync(role.RoleId);
+        _claimsPorRole.Remove(role.Id);
+        // TODO: await SistemaService.DeleteRoleAsync(role.Id);
     }
 
     // ── Dialogs ──────────────────────────────────────────────────────────────
@@ -282,10 +282,10 @@
         var result = await dialog.Result;
         if (!result.Canceled && result.Data is ApplicationRoleViewModel r)
         {
-            if (!sistema.Permissoes.Any(x => x.RoleId == r.RoleId))
+            if (!sistema.Permissoes.Any(x => x.Id == r.Id))
             {
                 sistema.Permissoes.Add(r);
-                _claimsPorRole[r.RoleId] = new();
+                _claimsPorRole[r.Id] = new();
             }
             StateHasChanged();
         }
