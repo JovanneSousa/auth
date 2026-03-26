@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Auth.Domain.DTOs
+namespace Auth.Domain.ViewModel
 {
     public class ForgotPassViewModel
     {

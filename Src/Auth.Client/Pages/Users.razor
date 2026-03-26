@@ -78,12 +78,12 @@
 
     private async Task OnRowClick(DataGridRowClickEventArgs<AuthUserViewModel> args)
     {
-        UserDetailsViewModel user;
+        AuthUserViewModel user;
 
         try
         {
-            ResponsePayload<UserDetailsViewModel> response = 
-                await httpClient.GetFromJsonAsync<ResponsePayload<UserDetailsViewModel>>($"api/auth/details-user/{args.Item.Id}");
+            ResponsePayload<AuthUserViewModel> response = 
+                await httpClient.GetFromJsonAsync<ResponsePayload<AuthUserViewModel>>($"api/auth/details-user/{args.Item.Id}");
             user = response.Data;
         } catch
         {

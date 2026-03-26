@@ -1,5 +1,6 @@
 ﻿using Auth.Api.Controllers;
-using Auth.Domain.DTOs;
+using Auth.Domain.ViewModel;
+using Auth.Domain.ViewModel;
 using Auth.Infra.Identity;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -48,7 +49,7 @@ namespace fin_api.Controllers
             => CustomResponse(await _authService.ListarAuthUser());
 
         [HttpGet("details-user/{id}")]
-        public async Task<ActionResult<UserDetailsViewModel>> ObterUsuarioPorId(string id) 
+        public async Task<ActionResult<AuthUserViewModel>> ObterUsuarioPorId(string id) 
             => CustomResponse(await _authService.ObterUsuarioPorId(id));
     }
 }

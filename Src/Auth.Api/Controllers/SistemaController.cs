@@ -1,4 +1,4 @@
-﻿using Auth.Domain.DTOs;
+﻿using Auth.Domain.ViewModel;
 using Auth.Domain.Entities;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Mvc;

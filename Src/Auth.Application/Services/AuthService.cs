@@ -10,9 +10,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using FV = FluentValidation.Results;
-using Auth.Domain.DTOs;
+using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
 using Auth.Infra.Identity;
+using Auth.Application.Queries.Interfaces;
 
 namespace Auth.Application.Services;
 
@@ -26,6 +27,7 @@ public class AuthService : IAuthService
     private readonly PermissionModel _permissions;
     private readonly IMessageBus _messageBus;
     private readonly string _frontUrl;
+    private readonly IAuthQueryService _authQuery;
 
     public AuthService(
         IAuthRepository authRepository,
@@ -36,7 +38,8 @@ public class AuthService : IAuthService
         PermissionModel permissions,
         IMessageBus messageBus,
         IOptions<FrontEndSettings> settings,
-        ISystemService systemService)
+        ISystemService systemService,
+        IAuthQueryService authQuery)
     {
         _permissions = permissions;
         _authRepository = authRepository;
@@ -46,26 +49,29 @@ public class AuthService : IAuthService
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
         _systemService = systemService;
+        _authQuery = authQuery;
     }
 
-    public async Task<UserDetailsViewModel> ObterUsuarioPorId(string id)
+    public async Task<AuthUserViewModel> ObterUsuarioPorId(string id)
     {
-        var usuario = await _authRepository.ObterUsuarioPorIdAsync(id);
-        if(usuario == null)
-        {
-            _notificador.Handle(new Notificacao("Usuário não encontrado!"));
-            return default;
-        }
-        var roles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(usuario);
-        var sistemas = await _systemService.ObterSistemasPorRoleNameAsync(roles);
+        return await _authQuery.ObterUsuarioPorId(id);
+
+        //var usuario = await _authRepository.ObterUsuarioPorIdAsync(id);
+        //if(usuario == null)
+        //{
+        //    _notificador.Handle(new Notificacao("Usuário não encontrado!"));
+        //    return default;
+        //}
+        //var roles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(usuario);
+        //var sistemas = await _systemService.ObterSistemasPorRoleNameAsync(roles);
 
 
-        return new UserDetailsViewModel
-                    {
-                        Email = usuario.Email,
-                        Nome = usuario.Nome,
-                        Systems = sistemas
-                    };
+        //return new AuthUserViewModel
+        //{
+        //    Email = usuario.Email,
+        //    Nome = usuario.Nome,
+        //    Systems = sistemas.ToList()
+        //};
     }
 
     public async Task<IEnumerable<AuthUserViewModel>> ListarAuthUser()
@@ -75,20 +81,12 @@ public class AuthService : IAuthService
 
         foreach (var user in usuarios)
         {
-            //var roles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user);
-            //var claims = await _authRepository.ObterClaimsAsync(user);
-            //var sistemas = await _systemService.ObterSistemasPorRoleNameAsync(roles);
             authUser.Add(new AuthUserViewModel
             {
                 Id = user.Id,
                 Email = user.Email,
-                UserName = user.Nome,
+                Nome = user.Nome,
             });
-        }
-        if (authUser.Count == 0 || authUser == null)
-        {
-            _notificador.Handle(new Notificacao("Nenhum usuario encontrado!"));
-            return default;
         }
 
         return authUser;

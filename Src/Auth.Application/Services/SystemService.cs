@@ -1,5 +1,7 @@
-﻿using Auth.Domain.DTOs;
+﻿using Auth.Application.Queries.Interfaces;
+using Auth.Domain.ViewModel;
 using Auth.Domain.Entities;
+using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
 using System.Data;
 
@@ -9,14 +11,17 @@ namespace Auth.Application.Services
     {
         private readonly ISystemRepository _systemRepository;
         private readonly IAuthRepository _authRepository;
+        private readonly ISystemQueryService _systemQuery;
         public SystemService(
             INotificador notificador,
             ISystemRepository systemRepository,
-            IAuthRepository authRepository)
+            IAuthRepository authRepository,
+            ISystemQueryService query)
             : base(notificador)
         {
             _systemRepository = systemRepository;
             _authRepository = authRepository;
+            _systemQuery = query;
         }
 
         public async Task<bool> AdicionaSistemaAsync(SystemEntity sistema)
@@ -25,40 +30,8 @@ namespace Auth.Application.Services
                 async () => await _systemRepository.AdicionarAsync(sistema));
         }
 
-        public async Task<SystemViewModel[]> ObterTodosSistemasAsync()
-        {
-            var sistemasModel = 
-                await ExecuteAsync(async () => await _systemRepository.ObterTodosSistemasAsync());
-
-            var sistemasViewModel = await Task.WhenAll(sistemasModel.Select(async system =>
-            {
-                var roles = await ExecuteAsync(async () =>
-                    await _authRepository.ObterRolesPorSistemIdAsync(system.Id));
-
-                var permissoes = await Task.WhenAll(roles.Select(async role =>
-                {
-                    var claims = await ExecuteAsync(async () =>
-                        await _authRepository.ObterClaimsRoleAsync(role));
-
-                    return new ApplicationRoleViewModel
-                    {
-                        Id = role.Id,
-                        Name = role.Name,
-                        Claims = claims.Select(c => c.Value).ToList()
-                    };
-                }));
-
-                return new SystemViewModel
-                {
-                    Id = system.Id,
-                    Name = system.Name,
-                    Url = system.Url,
-                    Permissoes = permissoes.ToList()
-                };
-            }));
-
-            return sistemasViewModel;
-        }
+        public async Task<List<SystemViewModel>> ObterTodosSistemasAsync() =>
+            await _systemQuery.ObterSistemasComPermissoes();
 
         public async Task<IEnumerable<SystemViewModel>> ObterSistemasPorRoleNameAsync(IList<string> rolesName)
         {

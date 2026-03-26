@@ -1,4 +1,4 @@
-﻿namespace Auth.Domain.DTOs
+﻿namespace Auth.Domain.ViewModel
 {
     public class SystemViewModel
     {
