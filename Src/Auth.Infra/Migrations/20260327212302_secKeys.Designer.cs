@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Auth.Infra.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260325203233_criandoApplicationUser")]
-    partial class criandoApplicationUser
+    [Migration("20260327212302_secKeys")]
+    partial class secKeys
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -249,6 +249,45 @@ namespace Auth.Infra.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("NetDevPack.Security.Jwt.Core.Model.KeyMaterial", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("KeyId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Parameters")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RevokedReason")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Use")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SecurityKeys");
                 });
 
             modelBuilder.Entity("Auth.Infra.Identity.ApplicationRole", b =>

@@ -1,6 +1,6 @@
-﻿using Auth.Application.Data;
-using Auth.Application.Repositories;
+﻿using Auth.Application.Repositories;
 using Auth.Domain.Entities;
+using Auth.Infra.Data;
 using Auth.Infra.Identity;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Identity;

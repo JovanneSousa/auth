@@ -14,6 +14,7 @@ using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
 using Auth.Infra.Identity;
 using Auth.Application.Queries.Interfaces;
+using NetDevPack.Security.Jwt.Core.Interfaces;
 
 namespace Auth.Application.Services;
 
@@ -23,11 +24,10 @@ public class AuthService : IAuthService
     private readonly INotificador _notificador;
     private readonly JwtSettings _jwtSettings;
     private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly ISystemService _systemService;
-    private readonly PermissionModel _permissions;
     private readonly IMessageBus _messageBus;
     private readonly string _frontUrl;
     private readonly IAuthQueryService _authQuery;
+    private readonly IJwtService _jwksService;
 
     public AuthService(
         IAuthRepository authRepository,
@@ -35,20 +35,18 @@ public class AuthService : IAuthService
         IOptions<JwtSettings> jwtSettings,
         IOptions<RabbitSettings> rabbitSettings,
         SignInManager<ApplicationUser> signInManager,
-        PermissionModel permissions,
         IMessageBus messageBus,
         IOptions<FrontEndSettings> settings,
-        ISystemService systemService,
+        IJwtService jwksService,
         IAuthQueryService authQuery)
     {
-        _permissions = permissions;
+        _jwksService = jwksService;
         _authRepository = authRepository;
         _notificador = notificador;
         _jwtSettings = jwtSettings.Value;
         _signInManager = signInManager;
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
-        _systemService = systemService;
         _authQuery = authQuery;
     }
 
@@ -133,7 +131,10 @@ public class AuthService : IAuthService
     }
     
 
-    public async Task<LoginResponseViewModel?> LogarUsuarioAsync(LoginUserViewModel loginUser)
+    public async Task<LoginResponseViewModel?> LogarUsuarioAsync(
+        LoginUserViewModel loginUser, 
+        string scheme, string host
+        )
     {
         var user = await _authRepository.ObterUsuarioPorEmailAsync(loginUser.Email);
         if (user == null)
@@ -157,7 +158,7 @@ public class AuthService : IAuthService
 
         await _signInManager.SignInAsync(user, false);
 
-        var token = GerarToken(claims);
+        var token = await GerarTokenAsync(claims, scheme, host);
 
         return MontarLoginResponse(user, token, claims);
     }
@@ -330,94 +331,17 @@ public class AuthService : IAuthService
         return true;
     }
 
-    //private async Task<bool> SalvaUserClaims(ApplicationUser user, RegisterUserViewModel registerUser)
-    //{
-    //    var claimsToAdd = await GeraListaDeClaims(user, registerUser);
-    //    if (claimsToAdd == null) return false;
-
-    //    var resultAddClaims = await _authRepository.SalvaClaimsAsync(user, claimsToAdd);
-    //    if (!resultAddClaims.Succeeded)
-    //    {
-    //        _notificador.Handle(new Notificacao("Falha ao salvar as permissões!"));
-    //        return false;
-    //    }
-    //    return true;
-    //}
-
-    //private async Task<List<Claim>?> GeraListaDeClaims(ApplicationUser user, RegisterUserViewModel registerUser)
-    //{
-    //    var claims = await _authRepository.ObterClaimsAsync(user);
-    //    var systemClaims = claims.FirstOrDefault(c =>
-    //        c.Type == "permission" &&
-    //        c.Value.StartsWith(registerUser.System.ToUpper())
-    //        );
-
-    //    if (systemClaims != null)
-    //    {
-    //        _notificador.Handle(new Notificacao("O usuário ja tem acesso a esse sistema!"));
-    //        return null;
-    //    }
-
-    //    var permissions = ResolvePermissions(registerUser.System, registerUser.Profile);
-    //    if (permissions == null) return null;
-
-    //    return permissions.Select(p => new Claim("permission", p))
-    //        .ToList();
-    //}
-
-    //private IEnumerable<string>? ResolvePermissions(string system, string profile)
-    //{
-    //    system = system.ToUpper();
-    //    profile = profile.ToUpper();
-
-    //    if (!_permissions.Systems.TryGetValue(system, out var profiles))
-    //    {
-    //        _notificador.Handle(new Notificacao("Sistema não encontrado!"));
-    //        return null;
-    //    }
-    //    if (!profiles.TryGetValue(profile, out var permissions))
-    //    {
-    //        _notificador.Handle(new Notificacao("Permissões não encontradas para esse perfil"));
-    //        return null;
-    //    }
-
-    //    return permissions;
-    //}
-    //private async Task<LoginResponseViewModel> GerarJwt(ApplicationUser user, IList<Claim> claims)
-    //{
-    //    var token = GerarToken(claims);
-    //    return MontarLoginResponse(user, token, claims);
-    //}
-
-    //private async Task<List<Claim>> ObterClaimsUsuarioAsync(ApplicationUser? user)
-    //{
-    //    var claims = new List<Claim>
-    //        {
-    //            new Claim(ClaimTypes.NameIdentifier, user.Id)
-    //        };
-
-    //    claims.AddRange(await _authRepository.ObterClaimsAsync(user));
-
-    //    var roles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user);
-    //    claims.AddRange(roles.Select(role => new Claim("role", role)));
-
-    //    return claims;
-    //}
-
-    private string GerarToken(IEnumerable<Claim> claims)
+    private async Task<string> GerarTokenAsync(IEnumerable<Claim> claims, string scheme, string host)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_jwtSettings.Segredo);
+        var key = await _jwksService.GetCurrentSigningCredentials();
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Issuer = _jwtSettings.Emissor,
-            Audience = _jwtSettings.Audiencia,
+            Issuer = $"{scheme}://{host}",
             Expires = DateTime.UtcNow.AddHours(_jwtSettings.ExpiracaoHoras),
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key),
-                SecurityAlgorithms.HmacSha256Signature)
+            SigningCredentials = key
         };
 
         var token = tokenHandler.CreateToken(tokenDescriptor);

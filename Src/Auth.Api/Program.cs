@@ -8,9 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 await builder
+    .AddDbContextConfig()
     .AddCorsConfig()
     .AddIdentityConfig()
-    .AddDbContextConfig()
     .AddPermissionConfig()
     .AddSettingsConfig()
     .AddDiConfig();
@@ -46,6 +46,8 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
+
+app.UseJwksDiscovery();
 
 app.MapControllers();
 app.MapRazorPages();

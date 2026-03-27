@@ -1,7 +1,7 @@
-﻿using Auth.Application.Data;
-using Auth.Application.DTOs;
+﻿using Auth.Application.DTOs;
 using Auth.Application.Queries.Interfaces;
 using Auth.Domain.ViewModel;
+using Auth.Infra.Data;
 using Auth.Infra.Interfaces;
 using Dapper;
 

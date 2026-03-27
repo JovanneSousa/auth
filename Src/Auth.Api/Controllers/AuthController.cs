@@ -13,14 +13,17 @@ namespace fin_api.Controllers
     public class AuthController : ApiController
     {
         private readonly IAuthService _authService;
+        private readonly IHttpContextAccessor _acessor; 
 
         public AuthController
             (
             IOptions<JwtSettings> jwtSettings,
             INotificador notificador,
-            IAuthService authService
+            IAuthService authService,
+            IHttpContextAccessor user
             ) : base(notificador)
         {
+            _acessor = user; 
             _authService = authService;
         }
 
@@ -29,8 +32,12 @@ namespace fin_api.Controllers
             CustomResponse(new { token = await _authService.AdicionarUsuarioAsync(registerUser) });
 
         [HttpPost("login")]
-        public async Task<ActionResult> Login(LoginUserViewModel loginUser) =>
-            CustomResponse(new { token = await _authService.LogarUsuarioAsync(loginUser) });
+        public async Task<ActionResult> Login(LoginUserViewModel loginUser)
+        {
+            var sheme = _acessor.HttpContext.Request.Scheme;
+            var host = _acessor.HttpContext.Request.Host.ToString();
+            return CustomResponse(new { token = await _authService.LogarUsuarioAsync(loginUser, sheme, host) });
+        }
 
         [HttpGet("health")]
         public ActionResult WakeUp() =>
