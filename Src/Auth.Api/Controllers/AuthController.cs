@@ -1,10 +1,7 @@
 ﻿using Auth.Api.Controllers;
 using Auth.Domain.ViewModel;
-using Auth.Domain.ViewModel;
-using Auth.Infra.Identity;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace fin_api.Controllers
 {
@@ -17,7 +14,6 @@ namespace fin_api.Controllers
 
         public AuthController
             (
-            IOptions<JwtSettings> jwtSettings,
             INotificador notificador,
             IAuthService authService,
             IHttpContextAccessor user

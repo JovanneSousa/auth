@@ -2,7 +2,6 @@
 using Auth.Infra.Identity;
 using Microsoft.AspNetCore.Identity;
 using NetDevPack.Security.Jwt.Core.Jwa;
-using System.Text;
 
 namespace Auth.Configuration
 {
@@ -19,29 +18,9 @@ namespace Auth.Configuration
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
-            var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
-            if (string.IsNullOrEmpty(jwtSettings?.Segredo))
-                throw new InvalidOperationException("Segredo JWT não configurado.");
 
-            var key = Encoding.ASCII.GetBytes(jwtSettings.Segredo);
-
-            //builder.Services.AddAuthentication(o =>
-            //{
-            //    o.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            //    o.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            //}).AddJwtBearer(o =>
-            //{
-            //    o.RequireHttpsMetadata = true;
-            //    o.SaveToken = true;
-            //    o.TokenValidationParameters = new TokenValidationParameters
-            //    {
-            //        IssuerSigningKey = new SymmetricSecurityKey(key),
-            //        ValidateIssuer = true,
-            //        ValidateAudience = true,
-            //        ValidAudience = jwtSettings.Audiencia,
-            //        ValidIssuer = jwtSettings.Emissor
-            //    };
-            //});
+            var appSettings = builder.Configuration.GetSection("AppTokenSettings");
+            builder.Services.Configure<AppTokenSettings>(appSettings);
 
             return builder;
         }

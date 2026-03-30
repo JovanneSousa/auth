@@ -22,7 +22,6 @@ public class AuthService : IAuthService
 {
     private readonly IAuthRepository _authRepository;
     private readonly INotificador _notificador;
-    private readonly JwtSettings _jwtSettings;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IMessageBus _messageBus;
     private readonly string _frontUrl;
@@ -32,7 +31,6 @@ public class AuthService : IAuthService
     public AuthService(
         IAuthRepository authRepository,
         INotificador notificador,
-        IOptions<JwtSettings> jwtSettings,
         IOptions<RabbitSettings> rabbitSettings,
         SignInManager<ApplicationUser> signInManager,
         IMessageBus messageBus,
@@ -43,7 +41,6 @@ public class AuthService : IAuthService
         _jwksService = jwksService;
         _authRepository = authRepository;
         _notificador = notificador;
-        _jwtSettings = jwtSettings.Value;
         _signInManager = signInManager;
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
@@ -53,23 +50,6 @@ public class AuthService : IAuthService
     public async Task<AuthUserViewModel> ObterUsuarioPorId(string id)
     {
         return await _authQuery.ObterUsuarioPorId(id);
-
-        //var usuario = await _authRepository.ObterUsuarioPorIdAsync(id);
-        //if(usuario == null)
-        //{
-        //    _notificador.Handle(new Notificacao("Usuário não encontrado!"));
-        //    return default;
-        //}
-        //var roles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(usuario);
-        //var sistemas = await _systemService.ObterSistemasPorRoleNameAsync(roles);
-
-
-        //return new AuthUserViewModel
-        //{
-        //    Email = usuario.Email,
-        //    Nome = usuario.Nome,
-        //    Systems = sistemas.ToList()
-        //};
     }
 
     public async Task<IEnumerable<AuthUserViewModel>> ListarAuthUser()
@@ -160,7 +140,9 @@ public class AuthService : IAuthService
 
         var token = await GerarTokenAsync(claims, scheme, host);
 
-        return MontarLoginResponse(user, token, claims);
+        var refresh = await GerarRefreshTokenAsync(loginUser.Email);
+
+        return MontarLoginResponse(user, token, claims, refresh);
     }
 
     public async Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data)
@@ -207,6 +189,49 @@ public class AuthService : IAuthService
             return false;
         }
         return true;
+    }
+
+    private async Task<RefreshToken> GerarRefreshTokenAsync(string email)
+    {
+        var refresh = new RefreshToken
+        {
+            UserName = email,
+            ExpirationDate = DateTime.UtcNow.AddHours(1)
+        };
+
+        // todo - remover tokens anteriores por email
+        // todo - persistir token atual
+
+        return refresh;
+    }
+
+    private async Task<RefreshToken> ObterRefreshToken(Guid refreshToken)
+    {
+        // todo - criar um service / repository que busca tokens
+        // token exemplo
+        var token = new RefreshToken();
+
+        return token != null && token.ExpirationDate > DateTime.UtcNow ? token : default;
+
+    }
+
+    public async Task RefreshToken(string refreshToken)
+    {
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            _notificador.Handle(new Notificacao("Refresh Token inválido"));
+            return;
+        }
+
+        var token = await ObterRefreshToken(Guid.Parse(refreshToken));
+
+        if(token is null)
+        {
+            _notificador.Handle(new Notificacao("Refresh Token Expirado!"));
+            return;
+        }
+
+        // todo - unificar metodos para gerar jwt e retornar aqui
     }
 
     private async Task<IList<Claim>> GerarListaDeClaimsPorUserRole(ApplicationUser user)
@@ -340,7 +365,7 @@ public class AuthService : IAuthService
         {
             Subject = new ClaimsIdentity(claims),
             Issuer = $"{scheme}://{host}",
-            Expires = DateTime.UtcNow.AddHours(_jwtSettings.ExpiracaoHoras),
+            Expires = DateTime.UtcNow.AddHours(1),
             SigningCredentials = key
         };
 
@@ -348,13 +373,14 @@ public class AuthService : IAuthService
         return tokenHandler.WriteToken(token);
     }
 
-    private LoginResponseViewModel MontarLoginResponse(ApplicationUser user, string token, IEnumerable<Claim> claims)
+    private LoginResponseViewModel MontarLoginResponse(ApplicationUser user, string token, IEnumerable<Claim> claims, RefreshToken refreshToken)
     {
         return new LoginResponseViewModel
         {
             AccessToken = token,
+            RefreshToken = refreshToken.Token,
             ExpiresIn = TimeSpan
-                .FromHours(_jwtSettings.ExpiracaoHoras)
+                .FromHours(1)
                 .TotalSeconds,
             UserToken = new UserTokenViewModel
             {
