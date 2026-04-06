@@ -22,7 +22,6 @@ public class AuthService : IAuthService
 {
     private readonly IAuthRepository _authRepository;
     private readonly INotificador _notificador;
-    private readonly JwtSettings _jwtSettings;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IMessageBus _messageBus;
     private readonly string _frontUrl;
@@ -32,7 +31,6 @@ public class AuthService : IAuthService
     public AuthService(
         IAuthRepository authRepository,
         INotificador notificador,
-        IOptions<JwtSettings> jwtSettings,
         IOptions<RabbitSettings> rabbitSettings,
         SignInManager<ApplicationUser> signInManager,
         IMessageBus messageBus,
@@ -43,7 +41,6 @@ public class AuthService : IAuthService
         _jwksService = jwksService;
         _authRepository = authRepository;
         _notificador = notificador;
-        _jwtSettings = jwtSettings.Value;
         _signInManager = signInManager;
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
@@ -340,7 +337,7 @@ public class AuthService : IAuthService
         {
             Subject = new ClaimsIdentity(claims),
             Issuer = $"{scheme}://{host}",
-            Expires = DateTime.UtcNow.AddHours(_jwtSettings.ExpiracaoHoras),
+            Expires = DateTime.UtcNow.AddHours(1),
             SigningCredentials = key
         };
 
@@ -354,7 +351,7 @@ public class AuthService : IAuthService
         {
             AccessToken = token,
             ExpiresIn = TimeSpan
-                .FromHours(_jwtSettings.ExpiracaoHoras)
+                .FromHours(1)
                 .TotalSeconds,
             UserToken = new UserTokenViewModel
             {
