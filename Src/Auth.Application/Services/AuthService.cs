@@ -100,7 +100,8 @@ public class AuthService : IAuthService
             {
                 UserName = registerUser.Email,
                 Email = registerUser.Email,
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                Nome = registerUser.Nome
             };
             var created = await CriaUserIdentity(user, registerUser.Password, registerUser);
             if (!created) return false;
