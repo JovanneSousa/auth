@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.72" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
-    <PackageReference Include="Jovane.MessageBus" Version="1.0.4" />
+    <PackageReference Include="Jovane.MessageBus" Version="1.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
   </ItemGroup>
 
