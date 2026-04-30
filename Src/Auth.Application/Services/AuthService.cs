@@ -106,6 +106,11 @@ public class AuthService : IAuthService
             if (!created) return false;
         } else
         {
+            if(string.IsNullOrWhiteSpace(usuarioExistente.UserName))
+            {
+                _notificador.Handle(new Notificacao("O Nome de usuário não pode ser nulo"));
+                return false;
+            }
             var executaLogin =
                 await _signInManager.PasswordSignInAsync(usuarioExistente.UserName, registerUser.Password, false, true);
             if (!executaLogin.Succeeded)
@@ -134,7 +139,7 @@ public class AuthService : IAuthService
         )
     {
         var user = await _authRepository.ObterUsuarioPorEmailAsync(loginUser.Email);
-        if (user == null)
+        if (user == null || string.IsNullOrWhiteSpace(user.UserName))
         {
             _notificador.Handle(new Notificacao("usuário ou senha incorretos!"));
             return null;
@@ -175,7 +180,7 @@ public class AuthService : IAuthService
 
         var resetLink = $"{_frontUrl}/auth?email={encodedEmail}&token={encodedToken}";
 
-        await _messageBus.PublishAsync(geraEmailEvent(data.Email, resetLink, user.Id));
+        await _messageBus.PublishAsync(GeraEmailEvent(data.Email, resetLink, user.Id));
         return true;
     }
 
@@ -305,7 +310,7 @@ public class AuthService : IAuthService
         return true;
     }
 
-    private EmailIntegrationEvent geraEmailEvent(string email, string resetLink, string userId)
+    private EmailIntegrationEvent GeraEmailEvent(string email, string resetLink, string userId)
         => new EmailIntegrationEvent
         {
             To = email,
