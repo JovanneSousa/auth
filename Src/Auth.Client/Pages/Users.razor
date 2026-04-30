@@ -87,9 +87,13 @@
             user = response.Data;
         } catch
         {
-            user = new();
-            user.Email = "Erro ao buscar!";
-            user.Nome = "Erro ao buscar!";
+            user = new AuthUserViewModel
+            {
+                Email = "Erro ao buscar!",
+                Id = "",
+                Nome = "Erro ao buscar!",
+                Systems = new()
+            };
         }
 
         var parameters = new DialogParameters
@@ -109,7 +113,13 @@
 
     private async Task NewItemAsync()
     {
-        var elem = new AuthUserViewModel();
+        var elem = new AuthUserViewModel
+        {
+            Email = "",
+            Id = Guid.NewGuid().ToString(),
+            Nome = "Erro ao buscar!",
+            Systems = new()
+        };
         isCreating = true;
         await DialogService.ShowAsync<CreateUserDialog>();
     }
