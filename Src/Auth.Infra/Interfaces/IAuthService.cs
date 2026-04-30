@@ -5,9 +5,9 @@ namespace Auth.Infra.Interfaces;
 public interface IAuthService
 {
     Task<bool> AdicionarUsuarioAsync(RegisterUserViewModel registerUser);
-    Task<LoginResponseViewModel?> LogarUsuarioAsync(LoginUserViewModel loginUser, string scheme, string host);
+    Task<LoginResponseViewModel> LogarUsuarioAsync(LoginUserViewModel loginUser, string scheme, string host);
     Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data);
     Task<bool> RecuperarSenha(ResetPassViewModel data);
     Task<IEnumerable<AuthUserViewModel>> ListarAuthUser();
-    Task<AuthUserViewModel> ObterUsuarioPorId(string id);
+    Task<AuthUserViewModel?> ObterUsuarioPorId(string id);
 }

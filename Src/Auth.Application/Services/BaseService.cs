@@ -13,7 +13,7 @@ namespace Auth.Application.Services
             _notificador = notificador;
         }
 
-        protected async Task<T> ExecuteAsync<T>(Func<Task<T>> action)
+        protected async Task<T?> ExecuteAsync<T>(Func<Task<T>> action)
         {
             try
             {

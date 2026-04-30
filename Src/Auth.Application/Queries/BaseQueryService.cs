@@ -28,7 +28,7 @@ namespace Auth.Application.Queries
             return connection;
         }
 
-        protected async Task<T> ExecuteQueryAsync<T>(Func<IDbConnection, Task<T>> action)
+        protected async Task<T?> ExecuteQueryAsync<T>(Func<IDbConnection, Task<T>> action)
         {
             try
             {

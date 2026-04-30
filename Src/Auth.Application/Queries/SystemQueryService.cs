@@ -1,7 +1,6 @@
 ﻿using Auth.Application.DTOs;
 using Auth.Application.Queries.Interfaces;
 using Auth.Domain.ViewModel;
-using Auth.Domain.ViewModel;
 using Auth.Infra.Data;
 using Auth.Infra.Interfaces;
 using Dapper;
@@ -32,11 +31,11 @@ namespace Auth.Application.Queries
                 LEFT JOIN ""AspNetRoleClaims"" c ON c.""RoleId"" = r.""Id""
             ";
 
-            return await ExecuteQueryAsync(async connection =>
+            var result = await ExecuteQueryAsync(async connection =>
             {
                 var lookup = new Dictionary<string, SystemViewModel>();
 
-                var result = await connection.QueryAsync<SystemDapperDTO, ApplicationRoleDapperDTO, string, SystemViewModel>(
+                await connection.QueryAsync<SystemDapperDTO, ApplicationRoleDapperDTO, string, SystemViewModel>(
                     sql,
                     (system, roleDto, claim) =>
                     {
@@ -46,9 +45,9 @@ namespace Auth.Application.Queries
                             {
                                 Id = system.SystemId,
                                 Name = system.Name,
-                                Url = system.Url
-                            };
-                            sys.Permissoes = new List<ApplicationRoleViewModel>();
+                                Url = system.Url,
+                                Permissoes = new()
+                            };  
                             lookup.Add(sys.Id, sys);
                         }
 
@@ -79,6 +78,8 @@ namespace Auth.Application.Queries
 
                 return lookup.Values.ToList();
             });
+
+            return result ?? new List<SystemViewModel>();
         }
     }
 }

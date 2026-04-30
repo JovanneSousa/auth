@@ -14,7 +14,7 @@ namespace Auth.Application.Queries
             INotificador notificador) : base(context, notificador)
         {
         }
-        public async Task<AuthUserViewModel> ObterUsuarioPorId(string id)
+        public async Task<AuthUserViewModel?> ObterUsuarioPorId(string id)
         {
             var sql = @"
                 select 

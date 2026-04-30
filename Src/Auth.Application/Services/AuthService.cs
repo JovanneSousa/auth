@@ -8,7 +8,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using FV = FluentValidation.Results;
 using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
@@ -47,7 +46,7 @@ public class AuthService : IAuthService
         _authQuery = authQuery;
     }
 
-    public async Task<AuthUserViewModel> ObterUsuarioPorId(string id)
+    public async Task<AuthUserViewModel?> ObterUsuarioPorId(string id)
     {
         return await _authQuery.ObterUsuarioPorId(id);
 
@@ -244,6 +243,17 @@ public class AuthService : IAuthService
     {
         var usuario = await _authRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
 
+        if (usuario == null)
+        {
+            _notificador.Handle(new Notificacao("Usuario não encontrado!"));
+            return new ResponseMessage(
+                new ValidationResult(
+                        [
+                            new FV.ValidationFailure("", "Usuario não encontrado!")
+                        ]
+                    ));
+        }
+
         var usuarioRegistrado = new UsuarioRegistradoIntegrationEvent
         {
             Id = usuario.Id,
@@ -357,7 +367,7 @@ public class AuthService : IAuthService
             UserToken = new UserTokenViewModel
             {
                 Id = user.Id,
-                Name = user.UserName.Split('-')[0],
+                Name = user.UserName,
                 Claims = claims.Select(c => new ClaimViewModel
                 {
                     Type = c.Type,
