@@ -49,15 +49,21 @@ namespace Auth.Application.Queries
                             {
                                 Id = usuario.UserId,
                                 Nome = usuario.Nome,
-                                Email = usuario.Email
+                                Email = usuario.Email,
+                                Systems = new()
                             };
-                            user.Systems = new List<SystemViewModel>();
                             lookup.Add(user.Id, user);
                         }
 
                         if (sistema != null && !string.IsNullOrEmpty(sistema.SystemId))
                         {
-                            user.Systems.Add(new SystemViewModel { Id = sistema.SystemId, Name = sistema.Name, Url = sistema.Url});
+                            user.Systems.Add(new SystemViewModel 
+                            { 
+                                Id = sistema.SystemId, 
+                                Name = sistema.Name, 
+                                Url = sistema.Url, 
+                                Permissoes = new()
+                            });
                         }
 
                         return user;

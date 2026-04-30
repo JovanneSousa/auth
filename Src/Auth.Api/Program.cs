@@ -11,7 +11,6 @@ await builder
     .AddDbContextConfig()
     .AddCorsConfig()
     .AddIdentityConfig()
-    .AddPermissionConfig()
     .AddSettingsConfig()
     .AddDiConfig();
 

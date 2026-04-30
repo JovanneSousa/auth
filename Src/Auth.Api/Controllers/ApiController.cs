@@ -20,7 +20,7 @@ public abstract class ApiController : ControllerBase
         return !_notificador.TemNotificacao();
     }
 
-    protected ActionResult CustomResponse(object result = null)
+    protected ActionResult CustomResponse(object? result = null)
     {
         if (OperacaoValida())
         {

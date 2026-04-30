@@ -6,13 +6,13 @@ namespace Auth.Domain.ViewModel
     {
         [Required(ErrorMessage = "O campo {0} é obrigatório")]
         [EmailAddress(ErrorMessage = "O campo {0} está em formato inválido")]
-        public string Email { get; set; }
+        public required string Email { get; set; }
 
         [Required(ErrorMessage = "O campo {0} é obrigatório")]
         [StringLength(100, ErrorMessage = "O campo precisa{0} ter entre {2} e {1} caracteres", MinimumLength = 6)]
-        public string Password { get; set; }
+        public required string Password { get; set; }
 
         [Required(ErrorMessage = "O campo {0} é obrigatório")]
-        public string System { get; set; }
+        public required string System { get; set; }
     }
 }

@@ -77,9 +77,11 @@ public class AuthService : IAuthService
         {
             authUser.Add(new AuthUserViewModel
             {
+                Email = user.Email ?? "",
                 Id = user.Id,
-                Email = user.Email,
                 Nome = user.Nome,
+                Systems = new()
+
             });
         }
 
@@ -372,7 +374,7 @@ public class AuthService : IAuthService
             UserToken = new UserTokenViewModel
             {
                 Id = user.Id,
-                Name = user.UserName,
+                Name = user.UserName ?? "",
                 Claims = claims.Select(c => new ClaimViewModel
                 {
                     Type = c.Type,

@@ -2,10 +2,10 @@
 {
     public class SystemViewModel
     {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Url { get; set; }
-        public List<ApplicationRoleViewModel> Permissoes { get; set; }
+        public required string Id { get; set; }
+        public required string Name { get; set; }
+        public required string Url { get; set; }
+        public required List<ApplicationRoleViewModel> Permissoes { get; set; }
 
     }
 }
