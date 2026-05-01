@@ -2,6 +2,6 @@
 {
     public class FrontEndSettings
     {
-        public string[] AllowedApps { get; set; }
+        public required string[] AllowedApps { get; set; }
     }
 }

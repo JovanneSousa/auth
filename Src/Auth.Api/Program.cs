@@ -8,12 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 await builder
+    .AddDbContextConfig()
     .AddCorsConfig()
     .AddIdentityConfig()
-    .AddDbContextConfig()
-    .AddPermissionConfig()
     .AddSettingsConfig()
     .AddDiConfig();
+
+builder.Services.AddRazorPages();
 
 builder = await builder.AddMessageBus();
 
@@ -37,11 +38,19 @@ if (app.Environment.IsDevelopment())
 {
     app.UseCors("Production");
 }
+// app.UseHttpsRedirection();
 
-app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
 
 app.UseAuthorization();
 
+app.UseJwksDiscovery();
+
 app.MapControllers();
+app.MapRazorPages();
+
+app.MapFallbackToFile("index.html");
 
 app.Run();

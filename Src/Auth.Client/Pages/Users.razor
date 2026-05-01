@@ -1,61 +1,154 @@
 ﻿@page "/usuarios"
-@inject HttpClient Http
 
-<PageTitle>Lista de Usuarios</PageTitle>
+@inject IDialogService DialogService
 
-<h1>Lista de Usuarios</h1>
+@using Auth.Client.Dialogs;
+@using System.Net.Http.Json
+@inject HttpClient httpClient
 
-@if (usuarios == null)
+@if (Usuarios == null )
 {
     <p><em>Loading...</em></p>
-}
-else
+} else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Email</th>
-                <th>UserName</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var usuario in usuarios)
-            {
-                <tr>
-                    <td>@usuario.Email</td>
-                    <td>@usuario.UserName</td>
-                    <td>
-                        <button type="button" class="btn btn-primary"><i class="bi bi-pencil"></i></button>
-                        <button type="button" class="btn btn-warning"><i class="bi bi-card-text"></i></button>
-                        <button type="button" class="btn btn-danger"><i class="bi bi-trash"></i></button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <MudDataGrid 
+        @ref="_elementGrid" 
+        T="AuthUserViewModel"
+        Items="@Usuarios" 
+        EditMode="@DataGridEditMode.Form"
+        ReadOnly="false"
+        StartedEditingItem="@StartedEditingItem" 
+        CanceledEditingItem="@CanceledEditingItem" 
+        CommittedItemChanges="@CommittedItemChanges"
+        Bordered="true" 
+        Dense="true" 
+        EditTrigger="DataGridEditTrigger.Manual"
+        RowClick="OnRowClick">
+
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Lista de usuarios</MudText>
+            <MudSpacer />
+            <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Filled">
+                <MudButton OnClick="NewItemAsync">
+                    Criar Novo Usuario
+                </MudButton>
+            </MudButtonGroup>
+        </ToolBarContent>
+        <Columns>
+            <TemplateColumn hidden="true">
+                <EditTemplate>
+                    @* Conteúdo extra exibido dentro do form de edição *@
+                    <MudText Typo="Typo.h6" Class="mb-2">@titleModal()</MudText>
+                </EditTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.Nome" />
+            <PropertyColumn Property="x => x.Email" />
+
+            <TemplateColumn Title="Ações" CellClass="d-flex justify-between">
+                <CellTemplate>
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteItem(context.Item))" />
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
+
 }
 
 @code {
-    private AuthUserViewModel[] usuarios;
+    private List<AuthUserViewModel> Usuarios;
+    private List<string> _events = new();
+    private MudDataGrid<AuthUserViewModel> _elementGrid = default!;
+    private bool isCreating;
+    private string titleModal() => 
+        isCreating ? "Criar um novo usuário" : "Editar usuário";
 
     protected override async Task OnInitializedAsync()
     {
-        var response = 
-        await Http.GetFromJsonAsync<ResponsePayload<AuthUserViewModel[]>>("api/auth/listar-usuarios");
-        if (response.Success)
+        try
         {
-            usuarios = response.Data;
-        } else
+            ResponsePayload<IEnumerable<AuthUserViewModel>> response =
+                await httpClient.GetFromJsonAsync<ResponsePayload<IEnumerable<AuthUserViewModel>>>("api/auth/listar-usuarios");
+            Usuarios = response.Data.ToList();
+        } catch
         {
-            usuarios = new AuthUserViewModel[0];
+            Usuarios = new List<AuthUserViewModel>();
         }
     }
 
-    public class AuthUserViewModel
+    private async Task OnRowClick(DataGridRowClickEventArgs<AuthUserViewModel> args)
     {
-        public string UserName { get; set; }
-        public string Email { get; set; }
+        AuthUserViewModel user;
+
+        try
+        {
+            ResponsePayload<AuthUserViewModel> response = 
+                await httpClient.GetFromJsonAsync<ResponsePayload<AuthUserViewModel>>($"api/auth/details-user/{args.Item.Id}");
+            user = response.Data;
+        } catch
+        {
+            user = new AuthUserViewModel
+            {
+                Email = "Erro ao buscar!",
+                Id = "",
+                Nome = "Erro ao buscar!",
+                Systems = new()
+            };
+        }
+
+        var parameters = new DialogParameters
+        {
+            ["Model"] = user
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        await DialogService.ShowAsync<DetailUserDialog>("Detalhes do Usuário", parameters, options);
+    }
+
+    private async Task NewItemAsync()
+    {
+        var elem = new AuthUserViewModel
+        {
+            Email = "",
+            Id = Guid.NewGuid().ToString(),
+            Nome = "Erro ao buscar!",
+            Systems = new()
+        };
+        isCreating = true;
+        await DialogService.ShowAsync<CreateUserDialog>();
+    }
+
+    private void DeleteItem(AuthUserViewModel item)
+    {
+        Usuarios.Remove(item);
+    }
+
+    // events
+    private void StartedEditingItem(AuthUserViewModel item)
+    {
+        _events.Insert(0, $"Event = StartedEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+    }
+
+    private void CanceledEditingItem(AuthUserViewModel item)
+    {
+        // update code for backing data here if needed
+        _events.Insert(0, $"Event = CanceledEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+        isCreating = false;
+    }
+
+    private Task<DataGridEditFormAction> CommittedItemChanges(AuthUserViewModel item)
+    {
+        // update code for the backing data here
+        _events.Insert(0, $"Event = CommittedItemChanges, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+        isCreating = false;
+
+        return Task.FromResult(DataGridEditFormAction.Close);
     }
 
     public class ResponsePayload<T>

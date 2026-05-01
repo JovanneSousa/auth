@@ -1,5 +1,5 @@
 ﻿using Auth.Domain.Entities;
-using Auth.Infra.Notifications;
+using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
@@ -20,7 +20,7 @@ public abstract class ApiController : ControllerBase
         return !_notificador.TemNotificacao();
     }
 
-    protected ActionResult CustomResponse(object result = null)
+    protected ActionResult CustomResponse(object? result = null)
     {
         if (OperacaoValida())
         {

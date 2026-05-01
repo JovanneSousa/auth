@@ -2,6 +2,6 @@
 
 public class ClaimViewModel
 {
-        public string Value { get; set; }
-        public string Type { get; set; }
+        public required string Value { get; set; }
+        public required string Type { get; set; }
 }
