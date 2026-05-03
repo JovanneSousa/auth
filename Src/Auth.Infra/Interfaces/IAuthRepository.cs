@@ -21,7 +21,7 @@ namespace Auth.Infra.Interfaces
         // Roles
         Task<IdentityResult> SalvaRoleAsync(ApplicationUser user, string role);
         Task<IList<string>> ObterNomeDasRolesPorUsuarioAsync(ApplicationUser user);
-        Task<ApplicationRole> ObterRolePorNomeAsync(string nome);
+        Task<ApplicationRole?> ObterRolePorNomeAsync(string nome);
         Task<IEnumerable<ApplicationRole>> ObterSystemIdDasRolesPorUsuarioAsync(IEnumerable<string> nomes);
         Task<IList<Claim>> ObterClaimsRoleAsync(ApplicationRole role);
         Task<IList<ApplicationRole>> ObterRolesPorSistemIdAsync(string systemId);

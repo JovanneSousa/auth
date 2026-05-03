@@ -6,6 +6,7 @@ namespace Auth.Infra.Interfaces
     {
         Task<bool> AdicionaSistemaAsync(SystemEntity sistema);
         Task<List<SystemViewModel>> ObterTodosSistemasAsync();
-        Task<IEnumerable<SystemViewModel>> ObterSistemasPorRoleNameAsync(IList<string> rolesName);
+        // --------------- METODO ANTIGO, PARA APRESENTAÇÃO NA FACULDADE ------------------------
+        //Task<IEnumerable<SystemViewModel>> ObterSistemasPorRoleNameAsync(IList<string> rolesName);
     }
 }

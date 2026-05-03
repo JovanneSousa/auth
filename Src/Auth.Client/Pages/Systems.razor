@@ -179,7 +179,7 @@
     // Quando tiver endpoint: Dictionary<roleId, List<claimValue>>
     private Dictionary<string, List<string>> _claimsPorRole = new();
 
-    private string? _roleComInputAberto;
+    private string _roleComInputAberto;
     private string _novaClaimTexto = "";
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
@@ -252,11 +252,11 @@
     }
 
     // ── Dialogs ──────────────────────────────────────────────────────────────
-    private async Task OpenSistemaDialog(SystemViewModel? sistema)
+    private async Task OpenSistemaDialog(SystemViewModel sistema)
     {
         var parameters = new DialogParameters
         {
-            ["Sistema"] = sistema ?? new SystemViewModel { Permissoes = new() }
+            ["Sistema"] = sistema,
         };
         var dialog = await DialogService.ShowAsync<SistemaDialog>(
             sistema is null ? "Novo sistema" : "Editar sistema", parameters);
@@ -274,7 +274,7 @@
     {
         var parameters = new DialogParameters
         {
-            ["Role"] = role ?? new ApplicationRoleViewModel()
+            ["Role"] = role,
         };
         var dialog = await DialogService.ShowAsync<RoleDialog>(
             role is null ? "Nova role" : "Editar role", parameters);

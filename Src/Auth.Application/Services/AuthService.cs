@@ -8,7 +8,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using FV = FluentValidation.Results;
 using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
@@ -47,7 +46,7 @@ public class AuthService : IAuthService
         _authQuery = authQuery;
     }
 
-    public async Task<AuthUserViewModel> ObterUsuarioPorId(string id)
+    public async Task<AuthUserViewModel?> ObterUsuarioPorId(string id)
     {
         return await _authQuery.ObterUsuarioPorId(id);
 
@@ -78,9 +77,11 @@ public class AuthService : IAuthService
         {
             authUser.Add(new AuthUserViewModel
             {
+                Email = user.Email ?? "",
                 Id = user.Id,
-                Email = user.Email,
                 Nome = user.Nome,
+                Systems = new()
+
             });
         }
 
@@ -107,6 +108,11 @@ public class AuthService : IAuthService
             if (!created) return false;
         } else
         {
+            if(string.IsNullOrWhiteSpace(usuarioExistente.UserName))
+            {
+                _notificador.Handle(new Notificacao("O Nome de usuário não pode ser nulo"));
+                return false;
+            }
             var executaLogin =
                 await _signInManager.PasswordSignInAsync(usuarioExistente.UserName, registerUser.Password, false, true);
             if (!executaLogin.Succeeded)
@@ -135,7 +141,7 @@ public class AuthService : IAuthService
         )
     {
         var user = await _authRepository.ObterUsuarioPorEmailAsync(loginUser.Email);
-        if (user == null)
+        if (user == null || string.IsNullOrWhiteSpace(user.UserName))
         {
             _notificador.Handle(new Notificacao("usuário ou senha incorretos!"));
             return null;
@@ -176,7 +182,7 @@ public class AuthService : IAuthService
 
         var resetLink = $"{_frontUrl}/auth?email={encodedEmail}&token={encodedToken}";
 
-        await _messageBus.PublishAsync(geraEmailEvent(data.Email, resetLink, user.Id));
+        await _messageBus.PublishAsync(GeraEmailEvent(data.Email, resetLink, user.Id));
         return true;
     }
 
@@ -244,6 +250,17 @@ public class AuthService : IAuthService
     {
         var usuario = await _authRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
 
+        if (usuario == null)
+        {
+            _notificador.Handle(new Notificacao("Usuario não encontrado!"));
+            return new ResponseMessage(
+                new ValidationResult(
+                        [
+                            new FV.ValidationFailure("", "Usuario não encontrado!")
+                        ]
+                    ));
+        }
+
         var usuarioRegistrado = new UsuarioRegistradoIntegrationEvent
         {
             Id = usuario.Id,
@@ -295,7 +312,7 @@ public class AuthService : IAuthService
         return true;
     }
 
-    private EmailIntegrationEvent geraEmailEvent(string email, string resetLink, string userId)
+    private EmailIntegrationEvent GeraEmailEvent(string email, string resetLink, string userId)
         => new EmailIntegrationEvent
         {
             To = email,
@@ -357,7 +374,7 @@ public class AuthService : IAuthService
             UserToken = new UserTokenViewModel
             {
                 Id = user.Id,
-                Name = user.UserName.Split('-')[0],
+                Name = user.UserName ?? "",
                 Claims = claims.Select(c => new ClaimViewModel
                 {
                     Type = c.Type,

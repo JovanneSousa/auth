@@ -8,7 +8,7 @@ public static class CorsConfig
             .GetSection("FrontEndSettings:AllowedApps")
             .Get<string[]>();
 
-        if (allowedOrigin.Length == 0)
+        if (allowedOrigin is null || allowedOrigin.Length == 0)
             throw new InvalidOperationException("nenhuma origem configurada em 'MEU_APP'.");
 
         builder.Services.AddCors(options =>

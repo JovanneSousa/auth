@@ -1,5 +1,4 @@
 ﻿using Auth.Application.Repositories;
-using Auth.Domain.Entities;
 using Auth.Infra.Data;
 using Auth.Infra.Identity;
 using Auth.Infra.Interfaces;
@@ -16,8 +15,7 @@ namespace Auth.Infra.Repositories
         private readonly ApplicationDbContext _context;
         public AuthRepository(
             UserManager<ApplicationUser> userManager,
-            RoleManager<ApplicationRole> roleManager
-,
+            RoleManager<ApplicationRole> roleManager,
             ApplicationDbContext context)
         {
             _userManager = userManager;
@@ -53,7 +51,7 @@ namespace Auth.Infra.Repositories
         // Roles
         public async Task<IList<string>> ObterNomeDasRolesPorUsuarioAsync(ApplicationUser user) =>
             await ExecuteAsync(async () => await _userManager.GetRolesAsync(user));
-        public async Task<ApplicationRole> ObterRolePorNomeAsync(string nome) =>
+        public async Task<ApplicationRole?> ObterRolePorNomeAsync(string nome) =>
             await ExecuteAsync(async () => await _roleManager.FindByNameAsync(nome));
         public async Task<IList<ApplicationRole>> ObterRolesPorSistemIdAsync(string systemId) =>
             await ExecuteAsync(async () => 

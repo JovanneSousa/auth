@@ -10,16 +10,16 @@ namespace fin_api.Controllers
     public class AuthController : ApiController
     {
         private readonly IAuthService _authService;
-        private readonly IHttpContextAccessor _acessor; 
+        private readonly HttpContext _context; 
 
         public AuthController
             (
             INotificador notificador,
             IAuthService authService,
-            IHttpContextAccessor user
+            HttpContext contexto
             ) : base(notificador)
         {
-            _acessor = user; 
+            _context = contexto; 
             _authService = authService;
         }
 
@@ -30,8 +30,8 @@ namespace fin_api.Controllers
         [HttpPost("login")]
         public async Task<ActionResult> Login(LoginUserViewModel loginUser)
         {
-            var sheme = _acessor.HttpContext.Request.Scheme;
-            var host = _acessor.HttpContext.Request.Host.ToString();
+            var sheme = _context.Request.Scheme;
+            var host = _context.Request.Host.ToString();
             return CustomResponse(new { token = await _authService.LogarUsuarioAsync(loginUser, sheme, host) });
         }
 

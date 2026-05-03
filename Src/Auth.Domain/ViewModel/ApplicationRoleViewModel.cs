@@ -2,8 +2,8 @@
 {
     public class ApplicationRoleViewModel
     {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public List<string> Claims { get; set; }
+        public required string Id { get; set; }
+        public required string Name { get; set; }
+        public required List<string> Claims { get; set; }
     }
 }

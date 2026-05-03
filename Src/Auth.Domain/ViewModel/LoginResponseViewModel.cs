@@ -3,7 +3,7 @@
 namespace Auth.Domain.ViewModel;
 public class LoginResponseViewModel
 {
-        public string AccessToken { get; set; }
-        public double ExpiresIn { get; set; }
-        public UserTokenViewModel UserToken { get; set; }
+        public required string AccessToken { get; set; }
+        public required double ExpiresIn { get; set; }
+        public required UserTokenViewModel UserToken { get; set; }
 }

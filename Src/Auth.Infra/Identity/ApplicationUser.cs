@@ -4,6 +4,6 @@ namespace Auth.Infra.Identity
 {
     public class ApplicationUser : IdentityUser
     {
-        public string Nome { get; set; }
+        public required string Nome { get; set; }
     }
 }
