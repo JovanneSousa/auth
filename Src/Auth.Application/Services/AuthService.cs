@@ -88,7 +88,7 @@ public class AuthService : IAuthService
         return authUser;
     }
 
-    public async Task<bool> AdicionarUsuarioAsync(RegisterUserViewModel registerUser)
+    public async Task<string?> AdicionarUsuarioAsync(RegisterUserViewModel registerUser)
     {
         var usuarioExistente = 
             await _authRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
@@ -105,20 +105,20 @@ public class AuthService : IAuthService
                 Nome = registerUser.Nome
             };
             var created = await CriaUserIdentity(user, registerUser.Password, registerUser);
-            if (!created) return false;
+            if (!created) return default;
         } else
         {
             if(string.IsNullOrWhiteSpace(usuarioExistente.UserName))
             {
                 _notificador.Handle(new Notificacao("O Nome de usuário não pode ser nulo"));
-                return false;
+                return default;
             }
             var executaLogin =
                 await _signInManager.PasswordSignInAsync(usuarioExistente.UserName, registerUser.Password, false, true);
             if (!executaLogin.Succeeded)
             {
                 _notificador.Handle(new Notificacao("A senha deve ser a mesma do outro sistema para a liberação de permissão!"));
-                return false;
+                return default;
             }
 
             user = usuarioExistente;
@@ -126,12 +126,12 @@ public class AuthService : IAuthService
 
         var usuarioRegistrado = await RegistraUsuario(registerUser);
         if(!usuarioRegistrado.ValidationResult.IsValid || usuarioRegistrado == null) 
-            return false;
+            return default;
 
         if (!await SalvaUserRoles(user, registerUser.Profile))
-            return false;
+            return default;
 
-        return true;
+        return user.Id;
     }
     
 

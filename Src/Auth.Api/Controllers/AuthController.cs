@@ -22,7 +22,7 @@ namespace fin_api.Controllers
 
         [HttpPost("registrar")]
         public async Task<ActionResult> Registrar(RegisterUserViewModel registerUser) =>
-            CustomResponse(new { token = await _authService.AdicionarUsuarioAsync(registerUser) });
+            CustomResponse(await _authService.AdicionarUsuarioAsync(registerUser));
 
         [HttpPost("login")]
         public async Task<ActionResult> Login(LoginUserViewModel loginUser)

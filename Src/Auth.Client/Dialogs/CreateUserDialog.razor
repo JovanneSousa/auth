@@ -6,12 +6,48 @@
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.h6">Criar Usuário</MudText>
-        <MudTextField @bind-Value="Model.Nome" Label="Nome" Required="true" />
-        <MudTextField @bind-Value="Model.Email" Label="Email" Required="true" />
-        <MudTextField @bind-Value="Model.Password" Label="Senha" InputType="InputType.Password" />
-        <MudTextField @bind-Value="Model.ConfirmPassword" Label="Confirmar Senha" InputType="InputType.Password" />
-        <MudTextField @bind-Value="Model.System" Label="Sistemas" />
-        <MudTextField @bind-Value="Model.Profile" Label="Perfil" />
+
+        <MudTextField @bind-Value="Model.Nome"
+                      Label="Nome" Required="true"
+                      RequiredError="O nome é obrigatório" />
+
+        <MudTextField @bind-Value="Model.Email"
+                      Label="Email" Required="true"
+                      RequiredError="O email é obrigatório" />
+
+        <MudTextField @bind-Value="Model.Password"
+                      Label="Senha"
+                      InputType="InputType.Password" />
+
+        <MudTextField @bind-Value="Model.ConfirmPassword"
+                      Label="Confirmar Senha"
+                      InputType="InputType.Password" />
+
+        <MudSelect T="string"
+                   Label="Sistema"
+                   Required="true"
+                   RequiredError="Selecione um sistema"
+                   ValueChanged="OnSistemaChanged">
+            @foreach (var sistema in Sistemas)
+            {
+                <MudSelectItem T="string" Value="@sistema.Name">
+                    @sistema.Name
+                </MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="string"
+                Label="Perfil"
+                @bind-Value="Model.Profile"
+                Required="true"
+                RequiredError="Selecione um perfil"
+                Disabled="@(!PerfisDisponiveis.Any())">
+            @foreach (var perfil in PerfisDisponiveis)
+            {
+                <MudSelectItem T="string" Value="@perfil.Name">
+                    @perfil.Name
+                </MudSelectItem>
+            }
+        </MudSelect>
     </DialogContent>
 
     <DialogActions>
@@ -24,8 +60,42 @@
     [CascadingParameter]
     IMudDialogInstance MudDialog { get; set; }
 
+    private List<SystemViewModel> Sistemas { get; set; } = new();
+    private List<ApplicationRoleViewModel> PerfisDisponiveis =>
+                Sistemas
+                    .FirstOrDefault(s => s.Name == Model.System)?
+                    .Permissoes?
+                    .ToList()
+                ?? new List<ApplicationRoleViewModel>();
+
     [Parameter]
-    public RegisterUserViewModel Model { get; set; }
+    public RegisterUserViewModel Model { get; set; } = new RegisterUserViewModel
+    {
+        ConfirmPassword = string.Empty,
+        Email = string.Empty,
+        Nome = string.Empty,
+        Password = string.Empty,
+        Profile = string.Empty,
+        System = string.Empty
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ResponsePayload<IEnumerable<SystemViewModel>> response =
+                await httpClient.GetFromJsonAsync<ResponsePayload<IEnumerable<SystemViewModel>>>("api/sistema");
+            if (response.Data is not null)
+            {
+                Sistemas = response.Data.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
 
     private async Task Submit()
     {
@@ -40,10 +110,31 @@
 
     private async Task SalvarUsuario(RegisterUserViewModel user, CancellationToken ct = default)
     {
-        var result = await httpClient.PostAsJsonAsync<RegisterUserViewModel>("/api/auth/registrar", user, ct);
-        if(result.StatusCode == System.Net.HttpStatusCode.Created || result.StatusCode == System.Net.HttpStatusCode.OK)
+        if(user.System.Equals("financeiro", StringComparison.OrdinalIgnoreCase))
         {
-            Console.WriteLine("Sucesso");
+            user.System = "fin";
         }
-    } 
+        var result = await httpClient.PostAsJsonAsync<RegisterUserViewModel>("/api/auth/registrar", user, ct);
+        if (result.IsSuccessStatusCode)
+        {
+            var response = await result.Content
+                .ReadFromJsonAsync<ResponsePayload<string>>(cancellationToken: ct);
+
+            var novoUsuario = new AuthUserViewModel
+                {
+                    Email = user.Email,
+                    Id = response.Data,
+                    Nome = user.Nome,
+                    Systems = new()
+                };
+
+            MudDialog.Close(DialogResult.Ok(novoUsuario));
+        }
+    }
+    private Task OnSistemaChanged(string sistema)
+    {
+        Model.System = sistema;
+        Model.Profile = string.Empty;
+        return Task.CompletedTask;
+    }
 }

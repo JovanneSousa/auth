@@ -39,9 +39,9 @@ namespace Auth.Application.Queries
             {
                 var lookup = new Dictionary<string, AuthUserViewModel>();
 
-                await connection.QueryAsync<AuthUserDapperDTO, SystemDapperDTO, AuthUserViewModel>(
+                await connection.QueryAsync<AuthUserDapperDTO, ApplicationRoleDapperDTO, SystemDapperDTO, AuthUserViewModel>(
                     sql,
-                    (usuario, sistema) => 
+                    (usuario, role, sistema) => 
                     {
                         if(!lookup.TryGetValue(usuario.UserId, out var user))
                         {
@@ -57,13 +57,22 @@ namespace Auth.Application.Queries
 
                         if (sistema != null && !string.IsNullOrEmpty(sistema.SystemId))
                         {
-                            user.Systems.Add(new SystemViewModel 
-                            { 
-                                Id = sistema.SystemId, 
-                                Name = sistema.Name, 
-                                Url = sistema.Url, 
-                                Permissoes = new()
+                            user.Systems.Add(new SystemViewModel
+                            {
+                                Id = sistema.SystemId,
+                                Name = sistema.Name,
+                                Url = sistema.Url,
+                                Permissoes = new List<ApplicationRoleViewModel>
+                                {
+                                    new ApplicationRoleViewModel
+                                    {
+                                        Id = role.RoleId,
+                                        Name = role.Name,
+                                        Claims = role.Claims
+                                    }
+                                }
                             });
+                            
                         }
 
                         return user;
