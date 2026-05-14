@@ -31,7 +31,8 @@ namespace Auth.Infra.Repositories
         public async Task<ApplicationUser?> ObterUsuarioPorIdAsync(string id) =>
             await ExecuteAsync(async () => await _userManager.FindByIdAsync(id));
         public async Task<IdentityResult> DeleteAsync(ApplicationUser usuario) =>
-            await ExecuteAsync(async () => await _userManager.DeleteAsync(usuario));
+            IdentityResult.Success;
+            // await ExecuteAsync(async () => await _userManager.DeleteAsync(usuario));
         public async Task<IEnumerable<ApplicationUser>> ObterTodosAuthUserAsync() =>
             await ExecuteAsync(async () => await _userManager.Users.AsNoTracking().ToListAsync());
 

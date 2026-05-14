@@ -1,4 +1,5 @@
 ﻿using Auth.Domain.Entities;
+using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;

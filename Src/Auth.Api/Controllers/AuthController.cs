@@ -24,6 +24,10 @@ namespace fin_api.Controllers
         public async Task<ActionResult> Registrar(RegisterUserViewModel registerUser) =>
             CustomResponse(await _authService.AdicionarUsuarioAsync(registerUser));
 
+        [HttpDelete("excluir/{id}")]
+        public async Task<ActionResult<ResponsePayload<bool>>> Excluir(string id) =>
+            CustomResponse(await _authService.RemoverUsuarioAsync(id));
+
         [HttpPost("login")]
         public async Task<ActionResult> Login(LoginUserViewModel loginUser)
         {

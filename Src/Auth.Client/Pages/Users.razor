@@ -17,9 +17,6 @@ else
                  Items="@Usuarios"
                  EditMode="@DataGridEditMode.Form"
                  ReadOnly="false"
-                 StartedEditingItem="@StartedEditingItem"
-                 CanceledEditingItem="@CanceledEditingItem"
-                 CommittedItemChanges="@CommittedItemChanges"
                  Bordered="true"
                  Dense="true"
                  EditTrigger="DataGridEditTrigger.Manual"
@@ -119,28 +116,28 @@ else
         }
     }
 
-    private void DeleteItem(AuthUserViewModel item)
+    private async Task DeleteItem(AuthUserViewModel item)
     {
-        Usuarios.Remove(item);
-    }
+        bool? confirm = await DialogService.ShowMessageBoxAsync(
+                title: "Confirmar exclusão",
+                markupMessage: (MarkupString)$"Deseja excluir o usuário <b>{item.Nome}</b> permanentemente?",
+                yesText: "Excluir",
+                noText: "Cancelar");
 
-    // events
-    private void StartedEditingItem(AuthUserViewModel item)
-    {
-        // _events.Insert(0, $"Event = StartedEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
-    }
+        if (confirm is not null && confirm == true)
+        {
+            var response = await httpClient.DeleteAsync($"api/auth/excluir/{item.Id}");
 
-    private void CanceledEditingItem(AuthUserViewModel item)
-    {
-        // update code for backing data here if needed
-        _events.Insert(0, $"Event = CanceledEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
-    }
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ResponsePayload<bool>>();
 
-    private Task<DataGridEditFormAction> CommittedItemChanges(AuthUserViewModel item)
-    {
-        // update code for the backing data here
-        _events.Insert(0, $"Event = CommittedItemChanges, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
-
-        return Task.FromResult(DataGridEditFormAction.Close);
+                if(result.Data)
+                {
+                    Usuarios.Remove(item);
+                    StateHasChanged();
+                }
+            }
+        }
     }
 }

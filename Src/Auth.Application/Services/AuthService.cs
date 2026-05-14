@@ -383,4 +383,17 @@ public class AuthService : IAuthService
             }
         };
     }
+
+    public async Task<bool> RemoverUsuarioAsync(string id)
+    {
+        var usuario = await _authRepository.ObterUsuarioPorIdAsync(id);
+        if(usuario is null)
+            return _notificador.Handle<bool>("Usuario não encontrado!");
+
+        var result = await _authRepository.DeleteAsync(usuario);
+        if (result.Succeeded)
+            return true;
+
+        return _notificador.Handle<bool>("Houve um erro ao excluir o usuário!");
+    }
 }

@@ -14,6 +14,12 @@ public class Notificador : INotificador
 
     public void Handle(Notificacao notificacao) => _notificacoes.Add(notificacao);
 
+    public T? Handle<T>(string notificacao)
+    {
+        Handle(new Notificacao(notificacao));
+        return default(T?);
+    }
+
     public List<Notificacao> ObterNotificacoes() => _notificacoes;
 
     public bool TemNotificacao() =>
