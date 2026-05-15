@@ -9,71 +9,49 @@ namespace Auth.Application.Queries
 {
     public class AuthQueryService : BaseQueryService, IAuthQueryService
     {
+        private static string ObterSqlUsuarioPorId() => @"
+                    SELECT
+                        u.""Id""        AS UserId,
+                        u.""Nome"",
+                        u.""Email"",
+                        r.""Id""        AS RoleId,
+                        r.""Name"",
+                        r.""SystemId"",
+                        s.""Id""        AS SystemId,
+                        s.""Name"",
+                        s.""Url""
+                    FROM ""AspNetUsers"" u
+                    LEFT JOIN ""AspNetUserRoles"" ur ON u.""Id"" = ur.""UserId""
+                    LEFT JOIN ""AspNetRoles""     r  ON r.""Id"" = ur.""RoleId""
+                    LEFT JOIN ""SystemEntity""    s  ON s.""Id"" = r.""SystemId""
+                    WHERE u.""Id"" = @UserId";
+
         public AuthQueryService(
-            ApplicationDbContext context, 
+            ApplicationDbContext context,
             INotificador notificador) : base(context, notificador)
         {
         }
+
+
+
         public async Task<AuthUserViewModel?> ObterUsuarioPorId(string id)
         {
-            var sql = @"
-                select 
-	                u.""Id"" AS UserId,
-	                u.""Nome"", 
-	                u.""Email"", 
-	                r.""Id"" AS RoleId,
-	                r.""Name"", 
-	                r.""SystemId"", 
-	                s.""Id"" AS SystemId,
-	                s.""Name"",
-	                s.""Url""
-                from ""AspNetUsers"" u
-                left join ""AspNetUserRoles"" ur on u.""Id"" = ur.""UserId""
-                left join ""AspNetRoles"" r on r.""Id"" = ur.""RoleId""
-                left join ""SystemEntity"" s on s.""Id"" = r.""SystemId""
-
-                where u.""Id"" = @UserId
-            ";
-
             return await ExecuteQueryAsync(async connection =>
             {
                 var lookup = new Dictionary<string, AuthUserViewModel>();
 
                 await connection.QueryAsync<AuthUserDapperDTO, ApplicationRoleDapperDTO, SystemDapperDTO, AuthUserViewModel>(
-                    sql,
-                    (usuario, role, sistema) => 
+                    ObterSqlUsuarioPorId(),
+                    (usuario, role, sistema) =>
                     {
-                        if(!lookup.TryGetValue(usuario.UserId, out var user))
+                        if (!lookup.TryGetValue(usuario.UserId, out var user))
                         {
-                            user = new AuthUserViewModel
-                            {
-                                Id = usuario.UserId,
-                                Nome = usuario.Nome,
-                                Email = usuario.Email,
-                                Systems = new()
-                            };
+                            user = CriarUsuario(usuario);
                             lookup.Add(user.Id, user);
                         }
 
                         if (sistema != null && !string.IsNullOrEmpty(sistema.SystemId))
-                        {
-                            user.Systems.Add(new SystemViewModel
-                            {
-                                Id = sistema.SystemId,
-                                Name = sistema.Name,
-                                Url = sistema.Url,
-                                Permissoes = new List<ApplicationRoleViewModel>
-                                {
-                                    new ApplicationRoleViewModel
-                                    {
-                                        Id = role.RoleId,
-                                        Name = role.Name,
-                                        Claims = role.Claims
-                                    }
-                                }
-                            });
-                            
-                        }
+                            user.Systems.Add(CriarSystemViewModel(sistema, role));
 
                         return user;
                     },
@@ -82,6 +60,33 @@ namespace Auth.Application.Queries
 
                 return lookup.Values.FirstOrDefault();
             });
+        }
+
+        private SystemViewModel CriarSystemViewModel(SystemDapperDTO sistema, ApplicationRoleDapperDTO role)
+            => new SystemViewModel
+            {
+                Id = sistema.SystemId,
+                Name = sistema.Name,
+                Url = sistema.Url,
+                Permissoes = new List<ApplicationRoleViewModel> {
+                    new()
+                    {
+                        Claims = role.Claims,
+                        Id = role.RoleId,
+                        Name = role.Name
+                    }
+                }
+            };
+
+        private AuthUserViewModel CriarUsuario(AuthUserDapperDTO usuario)
+        {
+            return new AuthUserViewModel
+            {
+                Email = usuario.Email,
+                Id = usuario.UserId,
+                Nome = usuario.Nome,
+                Systems = new()
+            };
         }
     }
 }
