@@ -17,10 +17,9 @@ using NetDevPack.Security.Jwt.Core.Interfaces;
 
 namespace Auth.Application.Services;
 
-public class AuthService : IAuthService
+public class AuthService : BaseService, IAuthService
 {
     private readonly IAuthRepository _authRepository;
-    private readonly INotificador _notificador;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IMessageBus _messageBus;
     private readonly string _frontUrl;
@@ -35,11 +34,10 @@ public class AuthService : IAuthService
         IMessageBus messageBus,
         IOptions<FrontEndSettings> settings,
         IJwtService jwksService,
-        IAuthQueryService authQuery)
+        IAuthQueryService authQuery) : base(notificador)
     {
         _jwksService = jwksService;
         _authRepository = authRepository;
-        _notificador = notificador;
         _signInManager = signInManager;
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
@@ -108,24 +106,21 @@ public class AuthService : IAuthService
             if (!created) return default;
         } else
         {
-            if(string.IsNullOrWhiteSpace(usuarioExistente.UserName))
-            {
-                _notificador.Handle(new Notificacao("O Nome de usuário não pode ser nulo"));
-                return default;
-            }
+            if (string.IsNullOrWhiteSpace(usuarioExistente.UserName))
+                return AdicionaErroProcessamento<string?>("O Nome de usuário não pode ser nulo");
+
             var executaLogin =
                 await _signInManager.PasswordSignInAsync(usuarioExistente.UserName, registerUser.Password, false, true);
+
             if (!executaLogin.Succeeded)
-            {
-                _notificador.Handle(new Notificacao("A senha deve ser a mesma do outro sistema para a liberação de permissão!"));
-                return default;
-            }
+                return AdicionaErroProcessamento<string?>("A senha deve ser a mesma do outro sistema para a liberação de permissão!");
 
             user = usuarioExistente;
         }
 
         var usuarioRegistrado = await RegistraUsuario(registerUser);
-        if(!usuarioRegistrado.ValidationResult.IsValid || usuarioRegistrado == null) 
+
+        if (!usuarioRegistrado.ValidationResult.IsValid || usuarioRegistrado == null)
             return default;
 
         if (!await SalvaUserRoles(user, registerUser.Profile))
@@ -142,21 +137,15 @@ public class AuthService : IAuthService
     {
         var user = await _authRepository.ObterUsuarioPorEmailAsync(loginUser.Email);
         if (user == null || string.IsNullOrWhiteSpace(user.UserName))
-        {
-            _notificador.Handle(new Notificacao("usuário ou senha incorretos!"));
-            return null;
-        };
+            return AdicionaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
 
         var resultCorrectPass = await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true);
         if (!resultCorrectPass.Succeeded)
-        {
-            _notificador.Handle(new Notificacao("usuário ou senha incorretos!"));
-            return null;
-        }
+            return AdicionaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
 
         var claims = await GerarListaDeClaimsPorUserRole(user);
         if (!await UsuarioTemPermissao(user, loginUser.System.ToUpper(), claims))
-            return null;
+            return default;
 
         claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
 
@@ -188,28 +177,20 @@ public class AuthService : IAuthService
 
     public async Task<bool> RecuperarSenha(ResetPassViewModel data)
     {
-        if(string.IsNullOrEmpty(data.Email))
-        {
-            _notificador.Handle(new Notificacao("Email inválido!"));
-            return false;
-        }
+        if (string.IsNullOrEmpty(data.Email))
+            return AdicionaErroProcessamento<bool>("Email inválido!");
+
         var user = await _authRepository.ObterUsuarioPorEmailAsync(data.Email);
-        if(user == null)
-        {
-            _notificador.Handle(new Notificacao("Usuário não encontrado!"));
-            return false;
-        }
-        if (string.IsNullOrEmpty(data.Password) || string.IsNullOrEmpty(data.Token)) 
-        {
-            _notificador.Handle(new Notificacao("token inválido!"));
-            return false;
-        }
+        if (user == null)
+            return AdicionaErroProcessamento<bool>("Usuário não encontrado!");
+
+        if (string.IsNullOrEmpty(data.Password) || string.IsNullOrEmpty(data.Token))
+            return AdicionaErroProcessamento<bool>("token inválido");
+
         var result = await _authRepository.ResetarSenha(user, data.Token, data.Password);
         if (!result.Succeeded)
-        {
-            _notificador.Handle(new Notificacao("Houve um erro atualizando a senha!"));
-            return false;
-        }
+            return AdicionaErroProcessamento<bool>("Houve um erro atualizando a senha!");
+
         return true;
     }
 
@@ -238,10 +219,7 @@ public class AuthService : IAuthService
             );
 
         if (!hasPermission)
-        {
-            _notificador.Handle(new Notificacao("Usuário não tem permissão nesse sistema!"));
-            return false;
-        }
+            return AdicionaErroProcessamento<bool>("Usuário não tem permissão nesse sistema!");
 
         return true;
     }
@@ -304,10 +282,7 @@ public class AuthService : IAuthService
         var result = await _authRepository.AdicionarUsuarioAsync(user, password);
 
         if (!result.Succeeded)
-        {
-            _notificador.Handle(new Notificacao("Falha ao registrar o usuário"));
-            return false;
-        }
+            return AdicionaErroProcessamento<bool>("Falha ao registrar o usuário!");
 
         return true;
     }
@@ -332,17 +307,12 @@ public class AuthService : IAuthService
     {
         var userRoles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user);
         if (userRoles.Contains(role))
-        {
-            _notificador.Handle(new Notificacao("O usuário ja tem esse perfil!"));
-            return false;
-        }
+            return AdicionaErroProcessamento<bool>("O usuário ja tem esse perfil!");
 
         var resultAddRole = await _authRepository.SalvaRoleAsync(user, role);
         if (!resultAddRole.Succeeded)
-        {
-            _notificador.Handle(new Notificacao("Falha ao salvar o perfil!"));
-            return false;
-        }
+            return AdicionaErroProcessamento<bool>("Falha ao salvar o perfil!");
+
         return true;
     }
 
@@ -388,12 +358,12 @@ public class AuthService : IAuthService
     {
         var usuario = await _authRepository.ObterUsuarioPorIdAsync(id);
         if(usuario is null)
-            return _notificador.Handle<bool>("Usuario não encontrado!");
+            return AdicionaErroProcessamento<bool>("Usuario não encontrado!");
 
         var result = await _authRepository.DeleteAsync(usuario);
         if (result.Succeeded)
             return true;
 
-        return _notificador.Handle<bool>("Houve um erro ao excluir o usuário!");
+        return AdicionaErroProcessamento<bool>("Houve um erro ao excluir o usuário!");
     }
 }

@@ -55,7 +55,7 @@ public abstract class ApiController : ControllerBase
         }
     }
 
-    protected void NotificarErro(string mensagem)
+    private void NotificarErro(string mensagem)
     {
         _notificador.Handle(new Notificacao(mensagem));
     }

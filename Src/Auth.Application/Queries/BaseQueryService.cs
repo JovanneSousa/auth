@@ -1,4 +1,4 @@
-﻿using Auth.Domain.Entities;
+﻿using Auth.Application.Services;
 using Auth.Infra.Data;
 using Auth.Infra.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -6,16 +6,14 @@ using System.Data;
 
 namespace Auth.Application.Queries
 {
-    public abstract class BaseQueryService
+    public abstract class BaseQueryService : BaseService
     {
         private readonly ApplicationDbContext _context;
-        private readonly INotificador _notificador;
         public BaseQueryService(
             ApplicationDbContext context, 
-            INotificador notificador)
+            INotificador notificador) : base(notificador)
         {
             _context = context;
-            _notificador = notificador;
         }
 
         private async Task<IDbConnection> GetConnection()
@@ -37,8 +35,7 @@ namespace Auth.Application.Queries
             }
             catch (Exception ex)
             {
-                _notificador.Handle(new Notificacao($"Erro no PostgreSQL, {ex.Message}"));
-                return default;
+                return AdicionaErroProcessamento<T>($"Erro no PostgreSQL, {ex.Message}");
             }
         }
     }
