@@ -1,4 +1,5 @@
 ﻿using Auth.Application.DTOs;
+using Auth.Application.Extensions;
 using Auth.Application.Queries.Interfaces;
 using Auth.Domain.ViewModel;
 using Auth.Infra.Data;
@@ -46,12 +47,12 @@ namespace Auth.Application.Queries
                     {
                         if (!lookup.TryGetValue(usuario.UserId, out var user))
                         {
-                            user = CriarUsuario(usuario);
+                            user = usuario.ToViewModel();
                             lookup.Add(user.Id, user);
                         }
 
                         if (sistema != null && !string.IsNullOrEmpty(sistema.SystemId))
-                            user.Systems.Add(CriarSystemViewModel(sistema, role));
+                            user.Systems.Add(sistema.ToViewModel(role));
 
                         return user;
                     },
@@ -60,33 +61,6 @@ namespace Auth.Application.Queries
 
                 return lookup.Values.FirstOrDefault();
             });
-        }
-
-        private SystemViewModel CriarSystemViewModel(SystemDapperDTO sistema, ApplicationRoleDapperDTO role)
-            => new SystemViewModel
-            {
-                Id = sistema.SystemId,
-                Name = sistema.Name,
-                Url = sistema.Url,
-                Permissoes = new List<ApplicationRoleViewModel> {
-                    new()
-                    {
-                        Claims = role.Claims,
-                        Id = role.RoleId,
-                        Name = role.Name
-                    }
-                }
-            };
-
-        private AuthUserViewModel CriarUsuario(AuthUserDapperDTO usuario)
-        {
-            return new AuthUserViewModel
-            {
-                Email = usuario.Email,
-                Id = usuario.UserId,
-                Nome = usuario.Nome,
-                Systems = new()
-            };
         }
     }
 }

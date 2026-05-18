@@ -27,16 +27,10 @@ namespace Auth.Application.Queries
         }
 
         protected async Task<T?> ExecuteQueryAsync<T>(Func<IDbConnection, Task<T>> action)
-        {
-            try
+            => await ExecuteAsync(async () =>
             {
                 var connection = await GetConnection();
                 return await action(connection);
-            }
-            catch (Exception ex)
-            {
-                return AdicionaErroProcessamento<T>($"Erro no PostgreSQL, {ex.Message}");
-            }
-        }
+            });
     }
 }
