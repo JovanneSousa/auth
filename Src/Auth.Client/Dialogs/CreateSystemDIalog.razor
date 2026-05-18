@@ -1,0 +1,66 @@
+﻿@using MudBlazor
+
+@inject IDialogService DialogService;
+@inject HttpClient httpClient;
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Criar Sistema</MudText>
+
+        <MudTextField @bind-Value="Model.Name"
+                      Label="Nome" Required="true"
+                      RequiredError="O nome é obrigatório" />
+
+        <MudTextField @bind-Value="Model.Url"
+                      Label="Url" Required="true"
+                      RequiredError="A Url é obrigatória" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public SystemViewModel Model { get; set; } = new SystemViewModel
+    {
+        Id = Guid.NewGuid().ToString(),
+        Name = string.Empty,
+        Permissoes = new(),
+        Url = string.Empty
+    };
+
+
+    private async Task Submit()
+    {
+        await SalvarSistema(Model);
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task SalvarSistema(SystemViewModel sys, CancellationToken ct = default)
+    {
+        var result = await httpClient.PostAsJsonAsync<SystemViewModel>("/api/sistema", sys, ct);
+        if (result.IsSuccessStatusCode)
+        {
+            var novoSistema = new SystemViewModel
+            {
+                Id = sys.Id,
+                Name = sys.Name,
+                Permissoes = new(),
+                Url = sys.Url
+            };
+
+            MudDialog.Close(DialogResult.Ok(novoSistema));
+        }
+    }
+}

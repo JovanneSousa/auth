@@ -47,43 +47,11 @@ public class AuthService : BaseService, IAuthService
     public async Task<AuthUserViewModel?> ObterUsuarioPorId(string id)
     {
         return await _authQuery.ObterUsuarioPorId(id);
-
-        //var usuario = await _authRepository.ObterUsuarioPorIdAsync(id);
-        //if(usuario == null)
-        //{
-        //    _notificador.Handle(new Notificacao("Usuário não encontrado!"));
-        //    return default;
-        //}
-        //var roles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(usuario);
-        //var sistemas = await _systemService.ObterSistemasPorRoleNameAsync(roles);
-
-
-        //return new AuthUserViewModel
-        //{
-        //    Email = usuario.Email,
-        //    Nome = usuario.Nome,
-        //    Systems = sistemas.ToList()
-        //};
     }
 
     public async Task<IEnumerable<AuthUserViewModel>> ListarAuthUser()
     {
-        var usuarios = await _authRepository.ObterTodosAuthUserAsync();
-        var authUser = new List<AuthUserViewModel>();
-
-        foreach (var user in usuarios)
-        {
-            authUser.Add(new AuthUserViewModel
-            {
-                Email = user.Email ?? "",
-                Id = user.Id,
-                Nome = user.Nome,
-                Systems = new()
-
-            });
-        }
-
-        return authUser;
+        return await _authQuery.ObterUsuariosComSistemas();
     }
 
     public async Task<string?> AdicionarUsuarioAsync(RegisterUserViewModel registerUser)

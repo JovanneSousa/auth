@@ -1,0 +1,77 @@
+﻿@using MudBlazor
+
+@inject IDialogService DialogService;
+@inject HttpClient httpClient;
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Criar Sistema</MudText>
+
+        <MudTextField @bind-Value="Model.Name"
+                      Label="Nome" Required="true"
+                      RequiredError="O nome é obrigatório" />
+
+        <MudTextField @bind-Value="Model.Name"
+                      Label="Url" Required="true"
+                      RequiredError="A Url é obrigatória" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public SystemViewModel? Sistema { get; set; }
+
+    [Parameter]
+    public ApplicationRoleViewModel? Model { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Model is null)
+        {
+            Model = new ApplicationRoleViewModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                SystemId = Sistema?.Id ?? string.Empty,
+                Name = string.Empty,
+                Claims = new()
+            };
+        }
+    }
+
+
+    private async Task Submit()
+    {
+        await SalvarRole(Model);
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task SalvarRole(ApplicationRoleViewModel role, CancellationToken ct = default)
+    {
+        var result = await httpClient.PostAsJsonAsync<ApplicationRoleViewModel>("/api/sistema/roles", role, ct);
+        if (result.IsSuccessStatusCode)
+        {
+            var novaRole = new ApplicationRoleViewModel
+            {
+                Id = role.Id,
+                Name = role.Name,
+                SystemId = role.SystemId,
+                Claims = new(),
+            };
+
+            MudDialog.Close(DialogResult.Ok(novaRole));
+        }
+    }
+}

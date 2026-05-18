@@ -36,6 +36,7 @@ namespace Auth.Application.Extensions
             {
                 Id = role.RoleId,
                 Name = role.Name,
+                SystemId = string.Empty,
                 Claims = role.Claims ?? new()
             };
 

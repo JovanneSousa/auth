@@ -34,6 +34,18 @@ else
         <Columns>
             <PropertyColumn Property="x => x.Nome" />
             <PropertyColumn Property="x => x.Email" />
+            <TemplateColumn Title="Sistemas">
+                <CellTemplate Context="context">
+                    @if (context.Item.Systems != null && context.Item.Systems.Any())
+                    {
+                        @string.Join(", ", context.Item.Systems.OrderBy(s => s.Name).Select(s => s.Name))
+                    }
+                    else
+                    {
+                        <MudText Color="Color.Secondary">Nenhum sistema</MudText>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
 
             <TemplateColumn Title="Ações" CellClass="d-flex justify-between">
                 <CellTemplate>

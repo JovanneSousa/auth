@@ -5,5 +5,6 @@ namespace Auth.Application.Queries.Interfaces
     public interface IAuthQueryService
     {
         Task<AuthUserViewModel?> ObterUsuarioPorId(string id);
+        Task<List<AuthUserViewModel>> ObterUsuariosComSistemas();
     }
 }

@@ -35,5 +35,23 @@ namespace Auth.Infra.Repositories
                         .Where(s => systemIds.Contains(s.Id))
                         .ToListAsync());
         }
+
+        public async Task<SystemEntity?> ObterSistemaPorNome(string nome)
+        {
+            return await ExecuteAsync(
+                async () => await _context.SystemEntity.FirstOrDefaultAsync(s => s.Name == nome)
+                );
+        }
+
+        public async Task<bool> AdicionaRole(ApplicationRole role)
+        {
+            return await ExecuteAsync(
+                async () =>
+                {
+                    await _context.AddAsync(role);
+                    await _context.SaveChangesAsync();
+                    return true;
+                });
+        }
     }
 }

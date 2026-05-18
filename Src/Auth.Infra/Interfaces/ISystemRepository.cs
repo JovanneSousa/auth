@@ -8,5 +8,7 @@ namespace Auth.Infra.Interfaces
         Task<bool> AdicionarAsync(SystemEntity system);
         Task<IEnumerable<SystemEntity>> ObterTodosSistemasAsync();
         Task<IEnumerable<SystemEntity>> ObterSistemasPorRolesAsync(IEnumerable<string> role);
+        Task<SystemEntity?> ObterSistemaPorNome(string nome);
+        Task<bool> AdicionaRole(ApplicationRole role);
     }
 }

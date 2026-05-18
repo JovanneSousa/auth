@@ -16,7 +16,7 @@
             <MudText Typo="Typo.h5">Sistemas</MudText>
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="() => OpenSistemaDialog(null)">
+                       OnClick="NewItemAsync">
                 Novo sistema
             </MudButton>
         </MudStack>
@@ -252,6 +252,23 @@
     }
 
     // ── Dialogs ──────────────────────────────────────────────────────────────
+    private async Task NewItemAsync()
+    {
+        var options = new DialogOptions
+        {
+            FullWidth = true
+        };
+        var dialog = await DialogService.ShowAsync<CreateSystemDIalog>("", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is SystemViewModel novoSistema)
+        {
+            _sistemas.Add(novoSistema);
+            StateHasChanged();
+        }
+    }
+
+
     private async Task OpenSistemaDialog(SystemViewModel sistema)
     {
         var parameters = new DialogParameters
@@ -274,9 +291,9 @@
     {
         var parameters = new DialogParameters
         {
-            ["Role"] = role,
+            ["sistema"] = sistema
         };
-        var dialog = await DialogService.ShowAsync<RoleDialog>(
+        var dialog = await DialogService.ShowAsync<CreateRoleDialog>(
             role is null ? "Nova role" : "Editar role", parameters);
 
         var result = await dialog.Result;

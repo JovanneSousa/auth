@@ -27,13 +27,27 @@ namespace Auth.Application.Queries
                     LEFT JOIN ""SystemEntity""    s  ON s.""Id"" = r.""SystemId""
                     WHERE u.""Id"" = @UserId";
 
+        private static string ObterSqlUsuarios() => @"
+                    SELECT
+                        u.""Id""        AS UserId,
+                        u.""Nome"",
+                        u.""Email"",
+                        r.""Id""        AS RoleId,
+                        r.""Name"",
+                        r.""SystemId"",
+                        s.""Id""        AS SystemId,
+                        s.""Name"",
+                        s.""Url""
+                    FROM ""AspNetUsers"" u
+                    LEFT JOIN ""AspNetUserRoles"" ur ON u.""Id"" = ur.""UserId""
+                    LEFT JOIN ""AspNetRoles""     r  ON r.""Id"" = ur.""RoleId""
+                    LEFT JOIN ""SystemEntity""    s  ON s.""Id"" = r.""SystemId""";
+
         public AuthQueryService(
             ApplicationDbContext context,
             INotificador notificador) : base(context, notificador)
         {
         }
-
-
 
         public async Task<AuthUserViewModel?> ObterUsuarioPorId(string id)
         {
@@ -61,6 +75,35 @@ namespace Auth.Application.Queries
 
                 return lookup.Values.FirstOrDefault();
             });
+        }
+
+        public async Task<List<AuthUserViewModel>> ObterUsuariosComSistemas()
+        {
+            var result = await ExecuteQueryAsync(async connection =>
+            {
+                var lookup = new Dictionary<string, AuthUserViewModel>();
+
+                await connection.QueryAsync<AuthUserDapperDTO, ApplicationRoleDapperDTO, SystemDapperDTO, AuthUserViewModel>(
+                    ObterSqlUsuarios(),
+                    (usuario, role, sistema) =>
+                    {
+                        if (!lookup.TryGetValue(usuario.UserId, out var user))
+                        {
+                            user = usuario.ToViewModel();
+                            lookup.Add(user.Id, user);
+                        }
+
+                        if (sistema != null && !string.IsNullOrEmpty(sistema.SystemId))
+                            user.Systems.Add(sistema.ToViewModel(role));
+
+                        return user;
+                    },
+                    splitOn: "SystemId");
+
+                return lookup.Values.ToList();
+            });
+
+            return result ?? new();
         }
     }
 }

@@ -2,7 +2,7 @@
 using Auth.Domain.ViewModel;
 using Auth.Domain.Entities;
 using Auth.Infra.Interfaces;
-using System.Data;
+using Auth.Infra.Identity;
 
 namespace Auth.Application.Services
 {
@@ -23,52 +23,32 @@ namespace Auth.Application.Services
             _systemQuery = query;
         }
 
-        public async Task<bool> AdicionaSistemaAsync(SystemEntity sistema)
+        public async Task<bool> AdicionaSistemaAsync(SystemViewModel sistema)
         {
+            SystemEntity sys = new() { Id = sistema.Id, Name = sistema.Name, Url = sistema.Url };
             return await ExecuteAsync(
-                async () => await _systemRepository.AdicionarAsync(sistema));
+                async () => await _systemRepository.AdicionarAsync(sys));
         }
 
         public async Task<List<SystemViewModel>> ObterTodosSistemasAsync() =>
             await _systemQuery.ObterSistemasComPermissoes();
 
-        // --------------- METODO ANTIGO, PARA APRESENTAÇÃO NA FACULDADE ------------------------
-        //
-        //public async Task<IEnumerable<SystemViewModel>> ObterSistemasPorRoleNameAsync(IList<string> rolesName)
-        //{
-        //    var roles = await ExecuteAsync(async () => 
-        //        await _authRepository.ObterSystemIdDasRolesPorUsuarioAsync(rolesName));
+        public async Task AtualizaSistema(SystemViewModel sistema)
+        {
+            var original = await _systemRepository.ObterSistemaPorNome(sistema.Name);
+        }
 
-        //    var systemIds = roles
-        //        .Select(r => r.SystemId)
-        //        .Distinct()
-        //        .ToList();
+        public async Task<bool> AdicionaRole(ApplicationRoleViewModel roleVm)
+        {
+            ApplicationRole role = new()
+            {
+                Id = roleVm.Id,
+                Name = roleVm.Name,
+                SystemId = roleVm.SystemId,
+                NormalizedName = roleVm.Name.ToUpper()
+            };
 
-        //    var systems = await ExecuteAsync(async () => 
-        //        await _systemRepository.ObterSistemasPorRolesAsync(systemIds));
-
-        //    var rolesPorSistema = roles
-        //        .GroupBy(r => r.SystemId)
-        //        .ToDictionary(g => g.Key, g => g.ToList());
-
-        //    var result = systems.Select(system => 
-        //    {
-        //        rolesPorSistema.TryGetValue(system.Id, out var rolesDoSistema);
-        //        return new SystemViewModel
-        //        {
-        //            Id = system.Id,
-        //            Name = system.Name,
-        //            Url = system.Url,
-        //            Permissoes = rolesDoSistema?
-        //                .Select(r => new ApplicationRoleViewModel
-        //                {
-        //                    Id = r.Id,
-        //                    Name = r.Name
-        //                }).ToList() ?? new List<ApplicationRoleViewModel>()
-        //        };
-        //    });
-
-        //    return result;
-        //}
+            return await _systemRepository.AdicionaRole(role);
+        }
     }
 }
