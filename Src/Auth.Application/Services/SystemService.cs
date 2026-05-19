@@ -1,6 +1,5 @@
 ﻿using Auth.Application.Queries.Interfaces;
 using Auth.Domain.ViewModel;
-using Auth.Domain.Entities;
 using Auth.Infra.Interfaces;
 using Auth.Application.Extensions;
 
@@ -23,6 +22,7 @@ namespace Auth.Application.Services
             _systemQuery = query;
         }
 
+        // Sistemas
         public async Task<bool> AdicionaSistemaAsync(SystemViewModel sistema)
         {
             var sys = sistema.ToSystem();
@@ -47,12 +47,35 @@ namespace Auth.Application.Services
             var original = await _systemRepository.ObterSistemaPorNome(sistema.Name);
         }
 
+        public Task<bool> RemoveSistemaAsync(string sistemaId)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        // Roles
         public async Task<bool> AdicionaRole(ApplicationRoleViewModel roleVm)
         {
             var result = await ExecuteAsync(async () => await _systemRepository.AdicionaRole(roleVm.toRole()));
             if (!result)
                 return RetornaErroProcessamento<bool>("Falha ao adicionar o perfil!");
             return true;
+        }
+
+        public Task<bool> RemoverRole(string roleId)
+        {
+            throw new NotImplementedException();
+        }
+
+        // Claims
+        public Task<bool> AdicionaClaim(string roleId, string claimValue)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> RemoveClaim(string claimId)
+        {
+            throw new NotImplementedException();
         }
     }
 }
