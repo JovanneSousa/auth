@@ -6,6 +6,6 @@ public interface INotificador
 {
     bool TemNotificacao();
     List<Notificacao> ObterNotificacoes();
-    void Handle(Notificacao notificacao);
+    void Handle(string erro);
     T? Handle<T>(string notificacao);
 }

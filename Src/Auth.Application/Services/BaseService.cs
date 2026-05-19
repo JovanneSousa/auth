@@ -34,7 +34,14 @@ namespace Auth.Application.Services
             });
         }
 
-        protected T? AdicionaErroProcessamento<T>(string erro)
+        protected T? RetornaSerieErrosProcessamento<T>(IEnumerable<string> erros)
+        {
+            foreach (var erro in erros)
+                _notificador.Handle(erro);
+            return default(T?);
+        }
+
+        protected T? RetornaErroProcessamento<T>(string erro)
             => _notificador.Handle<T>(erro);
     }
 }

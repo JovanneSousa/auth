@@ -2,7 +2,7 @@
 using Auth.Domain.ViewModel;
 using Auth.Domain.Entities;
 using Auth.Infra.Interfaces;
-using Auth.Infra.Identity;
+using Auth.Application.Extensions;
 
 namespace Auth.Application.Services
 {
@@ -25,9 +25,18 @@ namespace Auth.Application.Services
 
         public async Task<bool> AdicionaSistemaAsync(SystemViewModel sistema)
         {
-            SystemEntity sys = new() { Id = sistema.Id, Name = sistema.Name, Url = sistema.Url };
-            return await ExecuteAsync(
+            var sys = sistema.ToSystem();
+            var errors = sys.Validate();
+
+            if(errors.Any())
+                return RetornaSerieErrosProcessamento<bool>(errors);
+
+            var result = await ExecuteAsync(
                 async () => await _systemRepository.AdicionarAsync(sys));
+
+            if (!result)
+                return RetornaErroProcessamento<bool>("Falha ao adicionar o sistema!");
+            return true;
         }
 
         public async Task<List<SystemViewModel>> ObterTodosSistemasAsync() =>
@@ -40,15 +49,10 @@ namespace Auth.Application.Services
 
         public async Task<bool> AdicionaRole(ApplicationRoleViewModel roleVm)
         {
-            ApplicationRole role = new()
-            {
-                Id = roleVm.Id,
-                Name = roleVm.Name,
-                SystemId = roleVm.SystemId,
-                NormalizedName = roleVm.Name.ToUpper()
-            };
-
-            return await _systemRepository.AdicionaRole(role);
+            var result = await ExecuteAsync(async () => await _systemRepository.AdicionaRole(roleVm.toRole()));
+            if (!result)
+                return RetornaErroProcessamento<bool>("Falha ao adicionar o perfil!");
+            return true;
         }
     }
 }

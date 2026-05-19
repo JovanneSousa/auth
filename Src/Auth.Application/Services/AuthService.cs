@@ -75,13 +75,13 @@ public class AuthService : BaseService, IAuthService
         } else
         {
             if (string.IsNullOrWhiteSpace(usuarioExistente.UserName))
-                return AdicionaErroProcessamento<string?>("O Nome de usuário não pode ser nulo");
+                return RetornaErroProcessamento<string?>("O Nome de usuário não pode ser nulo");
 
             var executaLogin =
                 await _signInManager.PasswordSignInAsync(usuarioExistente.UserName, registerUser.Password, false, true);
 
             if (!executaLogin.Succeeded)
-                return AdicionaErroProcessamento<string?>("A senha deve ser a mesma do outro sistema para a liberação de permissão!");
+                return RetornaErroProcessamento<string?>("A senha deve ser a mesma do outro sistema para a liberação de permissão!");
 
             user = usuarioExistente;
         }
@@ -105,11 +105,11 @@ public class AuthService : BaseService, IAuthService
     {
         var user = await _authRepository.ObterUsuarioPorEmailAsync(loginUser.Email);
         if (user == null || string.IsNullOrWhiteSpace(user.UserName))
-            return AdicionaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
+            return RetornaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
 
         var resultCorrectPass = await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true);
         if (!resultCorrectPass.Succeeded)
-            return AdicionaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
+            return RetornaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
 
         var claims = await GerarListaDeClaimsPorUserRole(user);
         if (!await UsuarioTemPermissao(user, loginUser.System.ToUpper(), claims))
@@ -146,18 +146,18 @@ public class AuthService : BaseService, IAuthService
     public async Task<bool> RecuperarSenha(ResetPassViewModel data)
     {
         if (string.IsNullOrEmpty(data.Email))
-            return AdicionaErroProcessamento<bool>("Email inválido!");
+            return RetornaErroProcessamento<bool>("Email inválido!");
 
         var user = await _authRepository.ObterUsuarioPorEmailAsync(data.Email);
         if (user == null)
-            return AdicionaErroProcessamento<bool>("Usuário não encontrado!");
+            return RetornaErroProcessamento<bool>("Usuário não encontrado!");
 
         if (string.IsNullOrEmpty(data.Password) || string.IsNullOrEmpty(data.Token))
-            return AdicionaErroProcessamento<bool>("token inválido");
+            return RetornaErroProcessamento<bool>("token inválido");
 
         var result = await _authRepository.ResetarSenha(user, data.Token, data.Password);
         if (!result.Succeeded)
-            return AdicionaErroProcessamento<bool>("Houve um erro atualizando a senha!");
+            return RetornaErroProcessamento<bool>("Houve um erro atualizando a senha!");
 
         return true;
     }
@@ -187,7 +187,7 @@ public class AuthService : BaseService, IAuthService
             );
 
         if (!hasPermission)
-            return AdicionaErroProcessamento<bool>("Usuário não tem permissão nesse sistema!");
+            return RetornaErroProcessamento<bool>("Usuário não tem permissão nesse sistema!");
 
         return true;
     }
@@ -250,7 +250,7 @@ public class AuthService : BaseService, IAuthService
         var result = await _authRepository.AdicionarUsuarioAsync(user, password);
 
         if (!result.Succeeded)
-            return AdicionaErroProcessamento<bool>("Falha ao registrar o usuário!");
+            return RetornaErroProcessamento<bool>("Falha ao registrar o usuário!");
 
         return true;
     }
@@ -275,11 +275,11 @@ public class AuthService : BaseService, IAuthService
     {
         var userRoles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user);
         if (userRoles.Contains(role))
-            return AdicionaErroProcessamento<bool>("O usuário ja tem esse perfil!");
+            return RetornaErroProcessamento<bool>("O usuário ja tem esse perfil!");
 
         var resultAddRole = await _authRepository.SalvaRoleAsync(user, role);
         if (!resultAddRole.Succeeded)
-            return AdicionaErroProcessamento<bool>("Falha ao salvar o perfil!");
+            return RetornaErroProcessamento<bool>("Falha ao salvar o perfil!");
 
         return true;
     }
@@ -326,12 +326,12 @@ public class AuthService : BaseService, IAuthService
     {
         var usuario = await _authRepository.ObterUsuarioPorIdAsync(id);
         if(usuario is null)
-            return AdicionaErroProcessamento<bool>("Usuario não encontrado!");
+            return RetornaErroProcessamento<bool>("Usuario não encontrado!");
 
         var result = await _authRepository.DeleteAsync(usuario);
         if (result.Succeeded)
             return true;
 
-        return AdicionaErroProcessamento<bool>("Houve um erro ao excluir o usuário!");
+        return RetornaErroProcessamento<bool>("Houve um erro ao excluir o usuário!");
     }
 }
