@@ -14,7 +14,7 @@ namespace Auth.Infra.Interfaces
 
 
         // Claims
-        Task<bool> AdicionaClaim(string roleId, string claimValue);
-        Task<bool> RemoveClaim(string claimId);
+        Task<bool> AdicionaClaim(ApplicationClaimViewModel claim);
+        Task<bool> RemoveClaim(string roleId, string claimValue);
     }
 }

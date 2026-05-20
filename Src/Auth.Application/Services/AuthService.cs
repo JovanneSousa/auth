@@ -198,7 +198,7 @@ public class AuthService : BaseService, IAuthService
 
         if (usuario == null)
         {
-            _notificador.Handle(new Notificacao("Usuario não encontrado!"));
+            _notificador.Handle("Usuario não encontrado!");
             return new ResponseMessage(
                 new ValidationResult(
                         [
@@ -225,7 +225,7 @@ public class AuthService : BaseService, IAuthService
                 var errors = usuarioResult.ValidationResult.Errors;
 
                 foreach (var error in errors)
-                    _notificador.Handle(new Notificacao(error.ErrorMessage));
+                    _notificador.Handle(error.ErrorMessage);
 
                 return usuarioResult;
             }
@@ -234,7 +234,7 @@ public class AuthService : BaseService, IAuthService
         }
         catch
         {
-            _notificador.Handle(new Notificacao("Erro ao cadastrar usuário no sistema"));
+            _notificador.Handle("Erro ao cadastrar usuário no sistema");
             return new ResponseMessage(
                     new ValidationResult(
                         [

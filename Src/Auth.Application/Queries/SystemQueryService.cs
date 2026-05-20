@@ -4,6 +4,7 @@ using Auth.Application.Queries.Interfaces;
 using Auth.Domain.ViewModel;
 using Auth.Infra.Data;
 using Auth.Infra.Interfaces;
+using System.Security.Claims;
 using Dapper;
 
 namespace Auth.Application.Queries
@@ -72,7 +73,7 @@ namespace Auth.Application.Queries
                 }
 
                 if (!string.IsNullOrEmpty(claim))
-                    role.Claims.Add(claim);
+                    role.Claims.Add(new ApplicationClaimViewModel(role.Id, claim));
             }
 
             return sys;

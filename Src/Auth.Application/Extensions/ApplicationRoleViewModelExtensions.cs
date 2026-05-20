@@ -12,7 +12,7 @@ namespace Auth.Application.Extensions
                 Id = role.Id,
                 Name = role.Name,
                 NormalizedName = role.Name.ToUpper(),
-                SystemId = role.SystemId
+                SystemId = role.SystemId,
             };
         }
     }

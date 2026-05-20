@@ -37,10 +37,12 @@ namespace Auth.Infra.Repositories
             await ExecuteAsync(async () => await _userManager.Users.AsNoTracking().ToListAsync());
 
         // Claims
+        public async Task<IdentityResult> SalvaRoleClaim(ApplicationRole role, Claim claim) =>
+            await ExecuteAsync(async () => await _roleManager.AddClaimAsync(role, claim));
+        public async Task<IdentityResult> ExcluirRoleClaim(ApplicationRole role, Claim claim) =>
+            await ExecuteAsync(async () => await _roleManager.RemoveClaimAsync(role, claim));
         public async Task<IList<Claim>> ObterClaimsAsync(ApplicationUser user) =>
             await ExecuteAsync(async () => await _userManager.GetClaimsAsync(user));
-        public async Task<IdentityResult> SalvaClaimsAsync(ApplicationUser user, IList<Claim> claims) =>
-            await ExecuteAsync(async () => await _userManager.AddClaimsAsync(user, claims));
         public async Task<IList<Claim>> ObterClaimsRoleAsync(ApplicationRole role) =>
             await ExecuteAsync(async () => await _roleManager.GetClaimsAsync(role));
         public async Task<IList<ApplicationRole>> ObterClaimsPorRoleIdsAsync(List<string> rolesIds) =>
@@ -52,6 +54,8 @@ namespace Auth.Infra.Repositories
         // Roles
         public async Task<IList<string>> ObterNomeDasRolesPorUsuarioAsync(ApplicationUser user) =>
             await ExecuteAsync(async () => await _userManager.GetRolesAsync(user));
+        public async Task<ApplicationRole?> ObterRolePorId(string id)
+            => await _roleManager.FindByIdAsync(id);
         public async Task<ApplicationRole?> ObterRolePorNomeAsync(string nome) =>
             await ExecuteAsync(async () => await _roleManager.FindByNameAsync(nome));
         public async Task<IList<ApplicationRole>> ObterRolesPorSistemIdAsync(string systemId) =>

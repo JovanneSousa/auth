@@ -1,5 +1,6 @@
 ﻿using Auth.Application.DTOs;
 using Auth.Domain.ViewModel;
+using System.Security.Claims;
 
 namespace Auth.Application.Extensions
 {
@@ -31,14 +32,20 @@ namespace Auth.Application.Extensions
 
     public static class ApplicationRoleDapperDTOExtensions
     {
-        public static ApplicationRoleViewModel ToViewModel(this ApplicationRoleDapperDTO role) =>
-            new()
+        public static ApplicationRoleViewModel ToViewModel(this ApplicationRoleDapperDTO role)
+        {
+            List<ApplicationClaimViewModel> claims = new();
+            foreach (string claim in role.Claims)
+                claims.Add(new ApplicationClaimViewModel(role.RoleId, claim));
+
+            return new ApplicationRoleViewModel()
             {
                 Id = role.RoleId,
                 Name = role.Name,
                 SystemId = string.Empty,
-                Claims = role.Claims ?? new()
+                Claims = claims
             };
+        }
 
         public static bool EhValido(this ApplicationRoleDapperDTO role) 
             => role is not null && !string.IsNullOrEmpty(role.RoleId);

@@ -1,4 +1,6 @@
-﻿using Auth.Application.Queries.Interfaces;
+﻿using System.Security.Claims;
+
+using Auth.Application.Queries.Interfaces;
 using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
 using Auth.Application.Extensions;
@@ -68,14 +70,33 @@ namespace Auth.Application.Services
         }
 
         // Claims
-        public Task<bool> AdicionaClaim(string roleId, string claimValue)
+        public async Task<bool> AdicionaClaim(ApplicationClaimViewModel claimVM)
         {
-            throw new NotImplementedException();
+            var role = await ExecuteAsync(async () => await _authRepository.ObterRolePorId(claimVM.RoleId));
+            if (role is null)
+                return RetornaErroProcessamento<bool>("Falha ao adicionar claim, Role não encontrada");
+
+            var claim = claimVM.ToClaim();
+            var result = await ExecuteAsync(async () => await _authRepository.SalvaRoleClaim(role, claim));
+            if (result is not null && !result.Succeeded)
+                return RetornaErroProcessamento<bool>("Falha ao adicionar claim");
+
+            return true;
         }
 
-        public Task<bool> RemoveClaim(string claimId)
+        public async Task<bool> RemoveClaim(string roleId, string claimValue)
         {
-            throw new NotImplementedException();
+            var role = await ExecuteAsync(async () => await _authRepository.ObterRolePorId(roleId));
+            if (role is null)
+                return RetornaErroProcessamento<bool>("Falha ao excluir claim, Role não encontrada!");
+
+            var result = await ExecuteAsync(
+                async () => await _authRepository.ExcluirRoleClaim(role, new Claim("permission", claimValue))
+                );
+            if (result is not null && !result.Succeeded)
+                return RetornaErroProcessamento<bool>("Falha ao excluir claim!");
+
+            return true;
         }
     }
 }

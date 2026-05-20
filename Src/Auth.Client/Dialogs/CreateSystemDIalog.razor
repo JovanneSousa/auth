@@ -1,7 +1,8 @@
 ﻿@using MudBlazor
 
 @inject IDialogService DialogService;
-@inject HttpClient httpClient;
+@inject HttpClient httpClient
+@inject ISnackbar Snackbar
 
 <MudDialog>
     <DialogContent>
@@ -35,11 +36,20 @@
         Url = string.Empty
     };
 
+    [Parameter]
+    public bool IsEdiging { get; set; } = false;
+
 
     private async Task Submit()
     {
-        await SalvarSistema(Model);
-        MudDialog.Close(DialogResult.Ok(Model));
+        if(!IsEdiging)
+        {
+            await SalvarSistema(Model);
+
+        } else
+        {
+            await AtualizarSistema(Model);
+        }
     }
 
     private void Cancel()
@@ -47,20 +57,40 @@
         MudDialog.Cancel();
     }
 
+    private async Task AtualizarSistema(SystemViewModel sys, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
     private async Task SalvarSistema(SystemViewModel sys, CancellationToken ct = default)
     {
-        var result = await httpClient.PostAsJsonAsync<SystemViewModel>("/api/sistema", sys, ct);
-        if (result.IsSuccessStatusCode)
+        try
         {
-            var novoSistema = new SystemViewModel
+            var response = await httpClient.PostAsJsonAsync<SystemViewModel>("/api/sistema", sys, ct);
+            if (response.IsSuccessStatusCode)
             {
-                Id = sys.Id,
-                Name = sys.Name,
-                Permissoes = new(),
-                Url = sys.Url
-            };
+                var novoSistema = new SystemViewModel
+                {
+                    Id = sys.Id,
+                    Name = sys.Name,
+                    Permissoes = new(),
+                    Url = sys.Url
+                };
 
-            MudDialog.Close(DialogResult.Ok(novoSistema));
+                Snackbar.Add("Sistema criado com sucesso!", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(novoSistema));
+                return;
+            }
+            var errorMessage = await response.Content.ReadFromJsonAsync<ResponseError<string>>();
+            FechaDialogError(errorMessage.Errors);
+        } catch (Exception ex)
+        {
+            FechaDialogError(ex.Message);
         }
+    }
+    private void FechaDialogError(string error)
+    {
+        Snackbar.Add(error, Severity.Error);
+        MudDialog.Close(DialogResult.Cancel);
     }
 }
