@@ -4,6 +4,6 @@
     {
         public required string RoleId { get; init; }
         public required string Name { get; init; }
-        public required List<string> Claims { get; init; }
+        public required List<string> Claims { get; init; } = new();
     }
 }

@@ -1,8 +1,9 @@
-﻿using Auth.Application.Queries.Interfaces;
+﻿using System.Security.Claims;
+
+using Auth.Application.Queries.Interfaces;
 using Auth.Domain.ViewModel;
-using Auth.Domain.Entities;
 using Auth.Infra.Interfaces;
-using System.Data;
+using Auth.Application.Extensions;
 
 namespace Auth.Application.Services
 {
@@ -23,52 +24,105 @@ namespace Auth.Application.Services
             _systemQuery = query;
         }
 
-        public async Task<bool> AdicionaSistemaAsync(SystemEntity sistema)
+        // Sistemas
+        public async Task<bool> AdicionaSistemaAsync(SystemViewModel sistema)
         {
-            return await ExecuteAsync(
-                async () => await _systemRepository.AdicionarAsync(sistema));
+            var sys = sistema.ToSystem();
+            var errors = sys.Validate();
+
+            if(errors.Any())
+                return RetornaSerieErrosProcessamento<bool>(errors);
+
+            var result = await ExecuteAsync(
+                async () => await _systemRepository.AdicionarAsync(sys));
+
+            if (!result)
+                return RetornaErroProcessamento<bool>("Falha ao adicionar o sistema!");
+            return true;
         }
 
         public async Task<List<SystemViewModel>> ObterTodosSistemasAsync() =>
             await _systemQuery.ObterSistemasComPermissoes();
 
-        // --------------- METODO ANTIGO, PARA APRESENTAÇÃO NA FACULDADE ------------------------
-        //
-        //public async Task<IEnumerable<SystemViewModel>> ObterSistemasPorRoleNameAsync(IList<string> rolesName)
-        //{
-        //    var roles = await ExecuteAsync(async () => 
-        //        await _authRepository.ObterSystemIdDasRolesPorUsuarioAsync(rolesName));
+        public async Task<bool> AtualizaSistemaAsync(SystemViewModel sistema)
+        {
+            if (string.IsNullOrEmpty(sistema.Url) || string.IsNullOrEmpty(sistema.Name))
+                return RetornaErroProcessamento<bool>("O nome e url são obrigatórios!");
 
-        //    var systemIds = roles
-        //        .Select(r => r.SystemId)
-        //        .Distinct()
-        //        .ToList();
+            var original = await ExecuteAsync(async () => await _systemRepository.ObterSistemaPorId(sistema.Id));
+            if (original is null)
+                return RetornaErroProcessamento<bool>("Sistema não encontrado!");
 
-        //    var systems = await ExecuteAsync(async () => 
-        //        await _systemRepository.ObterSistemasPorRolesAsync(systemIds));
+            original.Url = sistema.Url;
+            original.Name = sistema.Name;
 
-        //    var rolesPorSistema = roles
-        //        .GroupBy(r => r.SystemId)
-        //        .ToDictionary(g => g.Key, g => g.ToList());
+            var result = await ExecuteAsync(async () => await _systemRepository.AtualizarAsync(original));
+            if (!result)
+                RetornaErroProcessamento<bool>("Falha ao atualizar sistema!");
 
-        //    var result = systems.Select(system => 
-        //    {
-        //        rolesPorSistema.TryGetValue(system.Id, out var rolesDoSistema);
-        //        return new SystemViewModel
-        //        {
-        //            Id = system.Id,
-        //            Name = system.Name,
-        //            Url = system.Url,
-        //            Permissoes = rolesDoSistema?
-        //                .Select(r => new ApplicationRoleViewModel
-        //                {
-        //                    Id = r.Id,
-        //                    Name = r.Name
-        //                }).ToList() ?? new List<ApplicationRoleViewModel>()
-        //        };
-        //    });
+            return true;
+        }
 
-        //    return result;
-        //}
+        public Task<bool> RemoveSistemaAsync(string sistemaId)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        // Roles
+        public async Task<bool> AdicionaRole(ApplicationRoleViewModel roleVm)
+        {
+            var result = await ExecuteAsync(async () => await _systemRepository.AdicionaRole(roleVm.toRole()));
+            if (!result)
+                return RetornaErroProcessamento<bool>("Falha ao adicionar o perfil!");
+            return true;
+        }
+
+        public async Task<bool> RemoverRole(string roleId)
+        {
+            var role = await ExecuteAsync(async () => await _authRepository.ObterRolePorId(roleId));
+            if (role is null)
+                return RetornaErroProcessamento<bool>("Role não encontrada!");
+
+            var claims = await ExecuteAsync(async () => await _authRepository.ObterClaimsRoleAsync(role));
+            if (claims is not null && claims.Any())
+                return RetornaErroProcessamento<bool>("Não foi possivel excluir a role, pois ela possui claims");
+
+            var result = await ExecuteAsync(async () => await _authRepository.RemoverRoleAsync(role));
+            if (result is null || !result.Succeeded)
+                RetornaErroProcessamento<bool>("Falha inesperada ao excluir a role!");
+
+            return true;
+        }
+
+        // Claims
+        public async Task<bool> AdicionaClaim(ApplicationClaimViewModel claimVM)
+        {
+            var role = await ExecuteAsync(async () => await _authRepository.ObterRolePorId(claimVM.RoleId));
+            if (role is null)
+                return RetornaErroProcessamento<bool>("Falha ao adicionar claim, Role não encontrada");
+
+            var claim = claimVM.ToClaim();
+            var result = await ExecuteAsync(async () => await _authRepository.SalvaRoleClaim(role, claim));
+            if (result is not null && !result.Succeeded)
+                return RetornaErroProcessamento<bool>("Falha ao adicionar claim");
+
+            return true;
+        }
+
+        public async Task<bool> RemoveClaim(string roleId, string claimValue)
+        {
+            var role = await ExecuteAsync(async () => await _authRepository.ObterRolePorId(roleId));
+            if (role is null)
+                return RetornaErroProcessamento<bool>("Falha ao excluir claim, Role não encontrada!");
+
+            var result = await ExecuteAsync(
+                async () => await _authRepository.ExcluirRoleClaim(role, new Claim("permission", claimValue))
+                );
+            if (result is not null && !result.Succeeded)
+                return RetornaErroProcessamento<bool>("Falha ao excluir claim!");
+
+            return true;
+        }
     }
 }

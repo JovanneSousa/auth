@@ -6,6 +6,6 @@ namespace Auth.Infra.Identity
     public class ApplicationRole : IdentityRole
     {
         public required string SystemId { get; set; }
-        public required SystemEntity System { get; set; }
+        public SystemEntity System { get; set; } = null!;
     }
 }

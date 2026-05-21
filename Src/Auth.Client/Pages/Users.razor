@@ -6,24 +6,21 @@
 @using System.Net.Http.Json
 @inject HttpClient httpClient
 
-@if (Usuarios == null )
+@if (Usuarios == null)
 {
     <p><em>Loading...</em></p>
-} else
+}
+else
 {
-    <MudDataGrid 
-        @ref="_elementGrid" 
-        T="AuthUserViewModel"
-        Items="@Usuarios" 
-        EditMode="@DataGridEditMode.Form"
-        ReadOnly="false"
-        StartedEditingItem="@StartedEditingItem" 
-        CanceledEditingItem="@CanceledEditingItem" 
-        CommittedItemChanges="@CommittedItemChanges"
-        Bordered="true" 
-        Dense="true" 
-        EditTrigger="DataGridEditTrigger.Manual"
-        RowClick="OnRowClick">
+    <MudDataGrid @ref="_elementGrid"
+                 T="AuthUserViewModel"
+                 Items="@Usuarios"
+                 EditMode="@DataGridEditMode.Form"
+                 ReadOnly="false"
+                 Bordered="true"
+                 Dense="true"
+                 EditTrigger="DataGridEditTrigger.Manual"
+                 RowClick="OnRowClick">
 
         <ToolBarContent>
             <MudText Typo="Typo.h6">Lista de usuarios</MudText>
@@ -35,18 +32,23 @@
             </MudButtonGroup>
         </ToolBarContent>
         <Columns>
-            <TemplateColumn hidden="true">
-                <EditTemplate>
-                    @* Conteúdo extra exibido dentro do form de edição *@
-                    <MudText Typo="Typo.h6" Class="mb-2">@titleModal()</MudText>
-                </EditTemplate>
-            </TemplateColumn>
             <PropertyColumn Property="x => x.Nome" />
             <PropertyColumn Property="x => x.Email" />
+            <TemplateColumn Title="Sistemas">
+                <CellTemplate Context="context">
+                    @if (context.Item.Systems != null && context.Item.Systems.Any())
+                    {
+                        @string.Join(", ", context.Item.Systems.OrderBy(s => s.Name).Select(s => s.Name))
+                    }
+                    else
+                    {
+                        <MudText Color="Color.Secondary">Nenhum sistema</MudText>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
 
             <TemplateColumn Title="Ações" CellClass="d-flex justify-between">
                 <CellTemplate>
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
                     <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteItem(context.Item))" />
                 </CellTemplate>
             </TemplateColumn>
@@ -59,9 +61,6 @@
     private List<AuthUserViewModel> Usuarios;
     private List<string> _events = new();
     private MudDataGrid<AuthUserViewModel> _elementGrid = default!;
-    private bool isCreating;
-    private string titleModal() => 
-        isCreating ? "Criar um novo usuário" : "Editar usuário";
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,7 +69,8 @@
             ResponsePayload<IEnumerable<AuthUserViewModel>> response =
                 await httpClient.GetFromJsonAsync<ResponsePayload<IEnumerable<AuthUserViewModel>>>("api/auth/listar-usuarios");
             Usuarios = response.Data.ToList();
-        } catch
+        }
+        catch
         {
             Usuarios = new List<AuthUserViewModel>();
         }
@@ -82,10 +82,11 @@
 
         try
         {
-            ResponsePayload<AuthUserViewModel> response = 
+            ResponsePayload<AuthUserViewModel> response =
                 await httpClient.GetFromJsonAsync<ResponsePayload<AuthUserViewModel>>($"api/auth/details-user/{args.Item.Id}");
             user = response.Data;
-        } catch
+        }
+        catch
         {
             user = new AuthUserViewModel
             {
@@ -113,47 +114,42 @@
 
     private async Task NewItemAsync()
     {
-        var elem = new AuthUserViewModel
+        var options = new DialogOptions
         {
-            Email = "",
-            Id = Guid.NewGuid().ToString(),
-            Nome = "Erro ao buscar!",
-            Systems = new()
+            FullWidth = true
         };
-        isCreating = true;
-        await DialogService.ShowAsync<CreateUserDialog>();
+        var dialog = await DialogService.ShowAsync<CreateUserDialog>("", options);
+        var result = await dialog.Result;
+
+        if(!result.Canceled && result.Data is AuthUserViewModel novoUsuario)
+        {
+            Usuarios.Add(novoUsuario);
+            StateHasChanged();
+        }
     }
 
-    private void DeleteItem(AuthUserViewModel item)
+    private async Task DeleteItem(AuthUserViewModel item)
     {
-        Usuarios.Remove(item);
-    }
+        bool? confirm = await DialogService.ShowMessageBoxAsync(
+                title: "Confirmar exclusão",
+                markupMessage: (MarkupString)$"Deseja excluir o usuário <b>{item.Nome}</b> permanentemente?",
+                yesText: "Excluir",
+                noText: "Cancelar");
 
-    // events
-    private void StartedEditingItem(AuthUserViewModel item)
-    {
-        _events.Insert(0, $"Event = StartedEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
-    }
+        if (confirm is not null && confirm == true)
+        {
+            var response = await httpClient.DeleteAsync($"api/auth/excluir/{item.Id}");
 
-    private void CanceledEditingItem(AuthUserViewModel item)
-    {
-        // update code for backing data here if needed
-        _events.Insert(0, $"Event = CanceledEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
-        isCreating = false;
-    }
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ResponsePayload<bool>>();
 
-    private Task<DataGridEditFormAction> CommittedItemChanges(AuthUserViewModel item)
-    {
-        // update code for the backing data here
-        _events.Insert(0, $"Event = CommittedItemChanges, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
-        isCreating = false;
-
-        return Task.FromResult(DataGridEditFormAction.Close);
-    }
-
-    public class ResponsePayload<T>
-    {
-        public bool Success { get; set; }
-        public T Data { get; set; }
+                if(result.Data)
+                {
+                    Usuarios.Remove(item);
+                    StateHasChanged();
+                }
+            }
+        }
     }
 }

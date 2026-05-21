@@ -17,7 +17,22 @@
 
             <RowTemplate>
                 <MudTd>@context.Name</MudTd>
-                <MudTd>@context.Permissoes.FirstOrDefault()?.Name</MudTd>
+                <MudTd>
+                    <MudSelect T="string"
+                               Value="@context.Permissoes.FirstOrDefault()?.Name"
+                               ValueChanged="@((string novoValor) => OnPerfilChanged(context, novoValor))"
+                               Dense="true"
+                               Margin="Margin.None"
+                               Variant="Variant.Text"
+                               Disabled="@(!context.Permissoes.Any())">
+                        @foreach (var perfil in context.Permissoes)
+                        {
+                            <MudSelectItem T="string" Value="@perfil.Name">
+                                @perfil.Name
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
             </RowTemplate>
         </MudTable>
     </DialogContent>
@@ -39,6 +54,11 @@
     {
         //await SalvarUsuario(Model);
         MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    private void OnPerfilChanged(SystemViewModel sistema, string novoValor)
+    {
+        var perfilSelecionado = sistema.Permissoes.FirstOrDefault(p => p.Name == novoValor);
     }
 
     private void Cancel()
