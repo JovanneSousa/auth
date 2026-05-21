@@ -70,7 +70,8 @@ namespace Auth.Infra.Repositories
                     .ToListAsync());
         public async Task<IdentityResult> SalvaRoleAsync(ApplicationUser user, string role) =>
             await ExecuteAsync(async () => await _userManager.AddToRoleAsync(user, role));
-
+        public async Task<IdentityResult> RemoverRoleAsync(ApplicationRole role)
+            => await ExecuteAsync(async () => await _roleManager.DeleteAsync(role));
 
         // User Manager
         public async Task<string> GeraTokenReset(ApplicationUser user) =>
@@ -79,5 +80,7 @@ namespace Auth.Infra.Repositories
             await ExecuteAsync(async () => await _userManager.IsEmailConfirmedAsync(user));
         public async Task<IdentityResult> ResetarSenha(ApplicationUser user, string token, string newPassword) =>
             await ExecuteAsync(async () => await _userManager.ResetPasswordAsync(user, token, newPassword));
+
+
     }
 }

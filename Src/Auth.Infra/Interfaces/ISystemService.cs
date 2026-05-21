@@ -5,6 +5,7 @@ namespace Auth.Infra.Interfaces
     {
         // Sistemas
         Task<bool> AdicionaSistemaAsync(SystemViewModel sistema);
+        Task<bool> AtualizaSistemaAsync(SystemViewModel sistema);
         Task<bool> RemoveSistemaAsync(string sistemaId);
         Task<List<SystemViewModel>> ObterTodosSistemasAsync();
 

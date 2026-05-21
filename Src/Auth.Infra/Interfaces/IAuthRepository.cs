@@ -21,6 +21,7 @@ namespace Auth.Infra.Interfaces
 
         // Roles
         Task<IdentityResult> SalvaRoleAsync(ApplicationUser user, string role);
+        Task<IdentityResult> RemoverRoleAsync(ApplicationRole role);
         Task<IList<string>> ObterNomeDasRolesPorUsuarioAsync(ApplicationUser user);
         Task<ApplicationRole?> ObterRolePorId(string id);
         Task<ApplicationRole?> ObterRolePorNomeAsync(string nome);

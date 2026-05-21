@@ -239,8 +239,7 @@
                 return true;
             }
 
-            var errorMessage = await response.Content.ReadFromJsonAsync<ResponseError<string>>();
-            Snackbar.Add(errorMessage.Errors, Severity.Error);
+            await ImprimeErrosRetornoHttp(response);
 
             return false;
 
@@ -283,9 +282,8 @@
                         StateHasChanged();
                         return;
                     }
-                } 
-                var error = await response.Content.ReadFromJsonAsync<ResponseError<string>>();
-                Snackbar.Add(error.Errors, Severity.Error);
+                }
+                await ImprimeErrosRetornoHttp(response);
             } catch (Exception ex)
             {
                 Snackbar.Add(ex.Message, Severity.Error);
@@ -317,11 +315,40 @@
         }
     }
 
-    private void RemoverRole(SystemViewModel sistema, ApplicationRoleViewModel role)
+    private async Task RemoverRole(SystemViewModel sistema, ApplicationRoleViewModel role)
     {
-        sistema.Permissoes.Remove(role);
-        _claimsPorRole.Remove(role.Id);
-        // TODO: await SistemaService.DeleteRoleAsync(role.Id);
+        bool? confirm = await DialogService.ShowMessageBoxAsync(
+                title: "Confirmar exclusão",
+                markupMessage: (MarkupString)$"Deseja excluir o perfil <b>{role.Name}</b> permanentemente?",
+                yesText: "Excluir",
+                noText: "Cancelar");
+
+        if (confirm is not null && confirm == true)
+        {
+            try
+            {
+                var response = await httpClient.DeleteAsync($"api/sistema/roles/remover/{role.Id}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ResponsePayload<bool>>();
+
+                    if (result.Data && sistema.Permissoes.Contains(role))
+                    {
+                        Snackbar.Add("Perfil excluido com sucesso!", Severity.Success);
+                        sistema.Permissoes.Remove(role);
+                        _claimsPorRole.Remove(role.Id);
+                        StateHasChanged();
+                        return;
+                    }
+                }
+                await ImprimeErrosRetornoHttp(response);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
     }
     #endregion
 
@@ -377,5 +404,12 @@
         return parts.Length >= 2
             ? $"{parts[0][0]}{parts[^1][0]}".ToUpper()
             : name[..Math.Min(2, name.Length)].ToUpper();
+    }
+
+    private async Task ImprimeErrosRetornoHttp(HttpResponseMessage response)
+    {
+        var error = await response.Content.ReadFromJsonAsync<ResponseError<string[]>>();
+        foreach (var errorMessage in error.Errors)
+            Snackbar.Add(errorMessage, Severity.Error);
     }
 }
