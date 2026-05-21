@@ -1,0 +1,96 @@
+﻿@using MudBlazor
+
+@inject IDialogService DialogService;
+@inject HttpClient httpClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Criar Sistema</MudText>
+
+        <MudTextField @bind-Value="Model.Name"
+                      Label="Nome" Required="true"
+                      RequiredError="O nome é obrigatório" />
+
+        <MudTextField @bind-Value="Model.Url"
+                      Label="Url" Required="true"
+                      RequiredError="A Url é obrigatória" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public SystemViewModel Model { get; set; } = new SystemViewModel
+    {
+        Id = Guid.NewGuid().ToString(),
+        Name = string.Empty,
+        Permissoes = new(),
+        Url = string.Empty
+    };
+
+    [Parameter]
+    public bool IsEdiging { get; set; } = false;
+
+
+    private async Task Submit()
+    {
+        if(!IsEdiging)
+        {
+            await SalvarSistema(Model);
+
+        } else
+        {
+            await AtualizarSistema(Model);
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task AtualizarSistema(SystemViewModel sys, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    private async Task SalvarSistema(SystemViewModel sys, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync<SystemViewModel>("/api/sistema", sys, ct);
+            if (response.IsSuccessStatusCode)
+            {
+                var novoSistema = new SystemViewModel
+                {
+                    Id = sys.Id,
+                    Name = sys.Name,
+                    Permissoes = new(),
+                    Url = sys.Url
+                };
+
+                Snackbar.Add("Sistema criado com sucesso!", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(novoSistema));
+                return;
+            }
+            var errorMessage = await response.Content.ReadFromJsonAsync<ResponseError<string>>();
+            FechaDialogError(errorMessage.Errors);
+        } catch (Exception ex)
+        {
+            FechaDialogError(ex.Message);
+        }
+    }
+    private void FechaDialogError(string error)
+    {
+        Snackbar.Add(error, Severity.Error);
+        MudDialog.Close(DialogResult.Cancel);
+    }
+}

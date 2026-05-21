@@ -1,0 +1,92 @@
+﻿@using MudBlazor
+
+@inject ISnackbar Snackbar
+
+@inject IDialogService DialogService;
+@inject HttpClient httpClient;
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Criar novo perfil</MudText>
+
+        <MudTextField @bind-Value="Model.Name"
+                      Label="Nome" Required="true"
+                      RequiredError="O nome é obrigatório" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public SystemViewModel? Sistema { get; set; }
+
+    [Parameter]
+    public ApplicationRoleViewModel? Model { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Model is null)
+        {
+            Model = new ApplicationRoleViewModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                SystemId = Sistema?.Id ?? string.Empty,
+                Name = string.Empty,
+                Claims = new()
+            };
+        }
+    }
+
+
+    private async Task Submit()
+    {
+        await SalvarRole(Model);
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task SalvarRole(ApplicationRoleViewModel role, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync<ApplicationRoleViewModel>("/api/sistema/roles", role, ct);
+            if (response.IsSuccessStatusCode)
+            {
+                var novaRole = new ApplicationRoleViewModel
+                {
+                    Id = role.Id,
+                    Name = role.Name,
+                    SystemId = role.SystemId,
+                    Claims = new(),
+                };
+                Snackbar.Add("Role criada com sucesso!", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(novaRole));
+                return;
+            }
+
+            var error = await response.Content.ReadFromJsonAsync<ResponseError<string>>();
+            FechaDialogError(error.Errors);
+        }
+        catch (Exception ex)
+        {
+            FechaDialogError(ex.Message);
+        }
+    }
+
+    private void FechaDialogError(string error)
+    {
+        Snackbar.Add(error, Severity.Error);
+        MudDialog.Close(DialogResult.Cancel);
+    }
+}

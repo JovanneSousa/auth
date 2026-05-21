@@ -1,4 +1,5 @@
 ﻿using Auth.Domain.Entities;
+using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -54,8 +55,8 @@ public abstract class ApiController : ControllerBase
         }
     }
 
-    protected void NotificarErro(string mensagem)
+    private void NotificarErro(string mensagem)
     {
-        _notificador.Handle(new Notificacao(mensagem));
+        _notificador.Handle(mensagem);
     }
 }

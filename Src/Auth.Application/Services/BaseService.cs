@@ -21,8 +21,7 @@ namespace Auth.Application.Services
             }
             catch (DatabaseException ex)
             {
-                _notificador.Handle(new Notificacao($"Erro no banco: {ex.Message}"));
-                return default;
+                return _notificador.Handle<T>($"Erro no banco: {ex.Message}");
             }
         }
 
@@ -34,5 +33,15 @@ namespace Auth.Application.Services
                 return true;
             });
         }
+
+        protected T? RetornaSerieErrosProcessamento<T>(IEnumerable<string> erros)
+        {
+            foreach (var erro in erros)
+                _notificador.Handle(erro);
+            return default(T?);
+        }
+
+        protected T? RetornaErroProcessamento<T>(string erro)
+            => _notificador.Handle<T>(erro);
     }
 }

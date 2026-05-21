@@ -1,12 +1,21 @@
 ﻿using Auth.Domain.ViewModel;
-using Auth.Domain.Entities;
 namespace Auth.Infra.Interfaces
 {
     public interface ISystemService
     {
-        Task<bool> AdicionaSistemaAsync(SystemEntity sistema);
+        // Sistemas
+        Task<bool> AdicionaSistemaAsync(SystemViewModel sistema);
+        Task<bool> AtualizaSistemaAsync(SystemViewModel sistema);
+        Task<bool> RemoveSistemaAsync(string sistemaId);
         Task<List<SystemViewModel>> ObterTodosSistemasAsync();
-        // --------------- METODO ANTIGO, PARA APRESENTAÇÃO NA FACULDADE ------------------------
-        //Task<IEnumerable<SystemViewModel>> ObterSistemasPorRoleNameAsync(IList<string> rolesName);
+
+        // Roles
+        Task<bool> AdicionaRole(ApplicationRoleViewModel roleVm);
+        Task<bool> RemoverRole(string roleId);
+
+
+        // Claims
+        Task<bool> AdicionaClaim(ApplicationClaimViewModel claim);
+        Task<bool> RemoveClaim(string roleId, string claimValue);
     }
 }
