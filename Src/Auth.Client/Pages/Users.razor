@@ -4,7 +4,8 @@
 
 @using Auth.Client.Dialogs;
 @using System.Net.Http.Json
-@inject HttpClient httpClient
+@inject IApiService _apiService;
+@inject ISnackbar Snackbar;
 
 @if (Usuarios == null)
 {
@@ -64,42 +65,27 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            ResponsePayload<IEnumerable<AuthUserViewModel>> response =
-                await httpClient.GetFromJsonAsync<ResponsePayload<IEnumerable<AuthUserViewModel>>>("api/auth/listar-usuarios");
-            Usuarios = response.Data.ToList();
-        }
-        catch
-        {
-            Usuarios = new List<AuthUserViewModel>();
-        }
+        var result = await _apiService.GetAsync<IEnumerable<AuthUserViewModel>>("api/auth/listar-usuarios");
+        Usuarios = result.Success ? result.Data.ToList() : new();
+
+        if (!result.Success)
+            MostraErros(result.Errors);
+
     }
 
     private async Task OnRowClick(DataGridRowClickEventArgs<AuthUserViewModel> args)
     {
-        AuthUserViewModel user;
+        var response = await _apiService.GetAsync<AuthUserViewModel>($"api/auth/details-user/{args.Item.Id}");
 
-        try
+        if (!response.Success)
         {
-            ResponsePayload<AuthUserViewModel> response =
-                await httpClient.GetFromJsonAsync<ResponsePayload<AuthUserViewModel>>($"api/auth/details-user/{args.Item.Id}");
-            user = response.Data;
-        }
-        catch
-        {
-            user = new AuthUserViewModel
-            {
-                Email = "Erro ao buscar!",
-                Id = "",
-                Nome = "Erro ao buscar!",
-                Systems = new()
-            };
+            MostraErros(response.Errors);
+            return;
         }
 
         var parameters = new DialogParameters
         {
-            ["Model"] = user
+            ["Model"] = response.Data
         };
 
         var options = new DialogOptions
@@ -138,18 +124,19 @@ else
 
         if (confirm is not null && confirm == true)
         {
-            var response = await httpClient.DeleteAsync($"api/auth/excluir/{item.Id}");
+            var response = await _apiService.DeleteAsync($"api/auth/excluir/{item.Id}");
 
-            if (response.IsSuccessStatusCode)
+            if (response.Success)
             {
-                var result = await response.Content.ReadFromJsonAsync<ResponsePayload<bool>>();
-
-                if(result.Data)
-                {
-                    Usuarios.Remove(item);
-                    StateHasChanged();
-                }
+                Usuarios.Remove(item);
+                StateHasChanged();
             }
         }
+    }
+
+    private void MostraErros(IEnumerable<string> erros)
+    {
+        foreach (var erro in erros)
+            Snackbar.Add(erro, Severity.Error);
     }
 }

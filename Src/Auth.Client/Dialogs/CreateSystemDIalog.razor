@@ -1,6 +1,7 @@
 ﻿@using MudBlazor
 
 @inject IDialogService DialogService;
+@inject IApiService _apiService;
 @inject HttpClient httpClient
 @inject ISnackbar Snackbar
 
@@ -42,11 +43,12 @@
 
     private async Task Submit()
     {
-        if(!IsEdiging)
+        if (!IsEdiging)
         {
             await SalvarSistema(Model);
 
-        } else
+        }
+        else
         {
             await AtualizarSistema(Model);
         }
@@ -64,33 +66,31 @@
 
     private async Task SalvarSistema(SystemViewModel sys, CancellationToken ct = default)
     {
-        try
+        var response = await _apiService.PostAsync<SystemViewModel, bool>("/api/sistema", sys, ct);
+        if (!response.Success)
         {
-            var response = await httpClient.PostAsJsonAsync<SystemViewModel>("/api/sistema", sys, ct);
-            if (response.IsSuccessStatusCode)
-            {
-                var novoSistema = new SystemViewModel
-                {
-                    Id = sys.Id,
-                    Name = sys.Name,
-                    Permissoes = new(),
-                    Url = sys.Url
-                };
-
-                Snackbar.Add("Sistema criado com sucesso!", Severity.Success);
-                MudDialog.Close(DialogResult.Ok(novoSistema));
-                return;
-            }
-            var errorMessage = await response.Content.ReadFromJsonAsync<ResponseError<string>>();
-            FechaDialogError(errorMessage.Errors);
-        } catch (Exception ex)
-        {
-            FechaDialogError(ex.Message);
+            FechaDialogError(response.Errors);
+            return;
         }
+
+        var novoSistema = new SystemViewModel
+        {
+            Id = sys.Id,
+            Name = sys.Name,
+            Permissoes = new(),
+            Url = sys.Url
+        };
+
+        Snackbar.Add("Sistema criado com sucesso!", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(novoSistema));
+        return;
     }
-    private void FechaDialogError(string error)
+
+    private void FechaDialogError(string[] error)
     {
-        Snackbar.Add(error, Severity.Error);
+        foreach (var erro in error)
+            Snackbar.Add(erro, Severity.Error);
+
         MudDialog.Close(DialogResult.Cancel);
     }
 }
