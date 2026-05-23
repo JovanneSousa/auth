@@ -18,6 +18,8 @@ namespace Auth.Api.Controllers
             _systemService = systemService;
         }
 
+        // Sistemas
+
         [HttpPost]
         public async Task<ActionResult<bool>> CriarSistema(SystemViewModel sistema) 
             => CustomResponse(await _systemService.AdicionaSistemaAsync(sistema));
@@ -26,9 +28,21 @@ namespace Auth.Api.Controllers
         public async Task<ActionResult<SystemViewModel>> ListarSistemas()
             => CustomResponse(await _systemService.ObterTodosSistemasAsync());
 
+        [HttpPut]
+        public async Task<ActionResult<bool>> AtualizaSistema(SystemViewModel sistema)
+            => CustomResponse(await _systemService.AtualizaSistemaAsync(sistema));
+
+        // Roles
+
         [HttpPost("roles")]
         public async Task<ActionResult<bool>> AdicionarRole(ApplicationRoleViewModel role)
             => CustomResponse(await _systemService.AdicionaRole(role));
+
+        [HttpDelete("roles/remover/{roleId}")]
+        public async Task<ActionResult<bool>> RemoverRole(string roleId)
+            => CustomResponse(await _systemService.RemoverRole(roleId));
+
+        // Claims
 
         [HttpPost("claim")]
         public async Task<ActionResult<bool>> AdicionarClaim(ApplicationClaimViewModel claim)

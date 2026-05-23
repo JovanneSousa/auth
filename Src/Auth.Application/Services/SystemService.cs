@@ -44,9 +44,23 @@ namespace Auth.Application.Services
         public async Task<List<SystemViewModel>> ObterTodosSistemasAsync() =>
             await _systemQuery.ObterSistemasComPermissoes();
 
-        public async Task AtualizaSistema(SystemViewModel sistema)
+        public async Task<bool> AtualizaSistemaAsync(SystemViewModel sistema)
         {
-            var original = await _systemRepository.ObterSistemaPorNome(sistema.Name);
+            if (string.IsNullOrEmpty(sistema.Url) || string.IsNullOrEmpty(sistema.Name))
+                return RetornaErroProcessamento<bool>("O nome e url são obrigatórios!");
+
+            var original = await ExecuteAsync(async () => await _systemRepository.ObterSistemaPorId(sistema.Id));
+            if (original is null)
+                return RetornaErroProcessamento<bool>("Sistema não encontrado!");
+
+            original.Url = sistema.Url;
+            original.Name = sistema.Name;
+
+            var result = await ExecuteAsync(async () => await _systemRepository.AtualizarAsync(original));
+            if (!result)
+                RetornaErroProcessamento<bool>("Falha ao atualizar sistema!");
+
+            return true;
         }
 
         public Task<bool> RemoveSistemaAsync(string sistemaId)
@@ -64,9 +78,21 @@ namespace Auth.Application.Services
             return true;
         }
 
-        public Task<bool> RemoverRole(string roleId)
+        public async Task<bool> RemoverRole(string roleId)
         {
-            throw new NotImplementedException();
+            var role = await ExecuteAsync(async () => await _authRepository.ObterRolePorId(roleId));
+            if (role is null)
+                return RetornaErroProcessamento<bool>("Role não encontrada!");
+
+            var claims = await ExecuteAsync(async () => await _authRepository.ObterClaimsRoleAsync(role));
+            if (claims is not null && claims.Any())
+                return RetornaErroProcessamento<bool>("Não foi possivel excluir a role, pois ela possui claims");
+
+            var result = await ExecuteAsync(async () => await _authRepository.RemoverRoleAsync(role));
+            if (result is null || !result.Succeeded)
+                RetornaErroProcessamento<bool>("Falha inesperada ao excluir a role!");
+
+            return true;
         }
 
         // Claims

@@ -5,6 +5,7 @@ using Auth.Infra.Identity;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Auth.Infra.Repositories
 {
@@ -25,6 +26,13 @@ namespace Auth.Infra.Repositories
                     return true;
                 });
 
+        public async Task<bool> AtualizarAsync(SystemEntity system)
+        {
+            _context.Update(system);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<IEnumerable<SystemEntity>> ObterTodosSistemasAsync()
             => await ExecuteAsync(async () => await _context.SystemEntity.ToListAsync());
 
@@ -35,6 +43,9 @@ namespace Auth.Infra.Repositories
                         .Where(s => systemIds.Contains(s.Id))
                         .ToListAsync());
         }
+
+        public async Task<SystemEntity?> ObterSistemaPorId(string id)
+            => await ExecuteAsync(async () => await _context.SystemEntity.FirstOrDefaultAsync(s => s.Id == id));
 
         public async Task<SystemEntity?> ObterSistemaPorNome(string nome)
         {
