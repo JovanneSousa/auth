@@ -2,6 +2,7 @@
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace Auth.Api.Controllers
 {
@@ -25,8 +26,20 @@ namespace Auth.Api.Controllers
             => CustomResponse(await _systemService.AdicionaSistemaAsync(sistema));
 
         [HttpGet]
-        public async Task<ActionResult<SystemViewModel>> ListarSistemas()
-            => CustomResponse(await _systemService.ObterTodosSistemasAsync());
+        public async Task<ActionResult<List<SystemViewModel>>> ListarSistemas()
+        {
+            var cronometro = new Stopwatch();
+            cronometro.Start();
+            var sistemaEntity = await _systemService.ObterTodosSistemasOldAsync();
+            cronometro.Stop();
+            var tempoEntity = cronometro.ElapsedMilliseconds;
+
+            cronometro.Restart();
+            var sistemaDapper = await _systemService.ObterTodosSistemasAsync();
+            cronometro.Stop();
+            var tempoDapper = cronometro.ElapsedMilliseconds;
+            return CustomResponse(sistemaDapper);
+        }
 
         [HttpPut]
         public async Task<ActionResult<bool>> AtualizaSistema(SystemViewModel sistema)

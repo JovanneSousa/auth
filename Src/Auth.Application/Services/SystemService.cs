@@ -4,6 +4,8 @@ using Auth.Application.Queries.Interfaces;
 using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
 using Auth.Application.Extensions;
+using Auth.Domain.Entities;
+using Auth.Infra.Identity;
 
 namespace Auth.Application.Services
 {
@@ -43,6 +45,50 @@ namespace Auth.Application.Services
 
         public async Task<List<SystemViewModel>> ObterTodosSistemasAsync() =>
             await _systemQuery.ObterSistemasComPermissoes();
+        public async Task<List<SystemViewModel>> ObterTodosSistemasOldAsync()
+        {
+            var sistemasModel =
+                await ExecuteAsync(async () => await _systemRepository.ObterTodosSistemasAsync());
+            if (sistemasModel is null)
+                sistemasModel = new List<SystemEntity>();
+
+            List<SystemViewModel> system = new();
+            foreach(var sys in sistemasModel)
+            {
+                var roles = await ExecuteAsync(async () =>
+                    await _authRepository.ObterRolesPorSistemIdAsync(sys.Id));
+
+                var permissoes = new List<ApplicationRoleViewModel>();
+
+                foreach (var role in roles ?? Enumerable.Empty<ApplicationRole>())
+                {
+                    var claimsEntity = await ExecuteAsync(async () =>
+                        await _authRepository.ObterClaimsRoleAsync(role));
+
+                    var claims = (claimsEntity ?? Enumerable.Empty<Claim>())
+                        .Select(c => new ApplicationClaimViewModel(role.Id, c.Value))
+                        .ToList();
+
+                    permissoes.Add(new ApplicationRoleViewModel
+                    {
+                        SystemId = sys.Id,
+                        Id = role.Id,
+                        Name = role.Name ?? "",
+                        Claims = claims
+                    });
+                }
+
+                system.Add(new SystemViewModel
+                {
+                    Id = sys.Id,
+                    Name = sys.Name,
+                    Url = sys.Url,
+                    Permissoes = permissoes.ToList()
+                });
+            };
+
+            return system;
+        }
 
         public async Task<bool> AtualizaSistemaAsync(SystemViewModel sistema)
         {

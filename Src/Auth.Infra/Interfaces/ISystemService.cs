@@ -8,6 +8,7 @@ namespace Auth.Infra.Interfaces
         Task<bool> AtualizaSistemaAsync(SystemViewModel sistema);
         Task<bool> RemoveSistemaAsync(string sistemaId);
         Task<List<SystemViewModel>> ObterTodosSistemasAsync();
+        Task<List<SystemViewModel>> ObterTodosSistemasOldAsync();
 
         // Roles
         Task<bool> AdicionaRole(ApplicationRoleViewModel roleVm);
