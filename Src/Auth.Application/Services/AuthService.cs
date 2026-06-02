@@ -17,6 +17,9 @@ using NetDevPack.Security.Jwt.Core.Interfaces;
 
 namespace Auth.Application.Services;
 
+/// <summary>
+/// Serviço de aplicação para gestão de autenticação, usuários e integração de identidade.
+/// </summary>
 public class AuthService : BaseService, IAuthService
 {
     private readonly IAuthRepository _authRepository;

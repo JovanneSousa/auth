@@ -8,6 +8,10 @@ using System.Security.Claims;
 
 namespace Auth.Infra.Repositories
 {
+    /// <summary>
+    /// Repositório de infraestrutura para gestão de usuários, perfis e permissões utilizando ASP.NET Identity.
+    /// Encapsula operações do UserManager e RoleManager com tratamento de exceções de banco de dados.
+    /// </summary>
     public class AuthRepository : BaseRepository, IAuthRepository
     {
         private readonly UserManager<ApplicationUser> _userManager;

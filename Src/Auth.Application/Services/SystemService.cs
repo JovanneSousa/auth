@@ -7,6 +7,9 @@ using Auth.Application.Extensions;
 
 namespace Auth.Application.Services
 {
+    /// <summary>
+    /// Serviço de aplicação para gestão de sistemas, perfis e claims de permissão.
+    /// </summary>
     public class SystemService : BaseService, ISystemService
     {
         private readonly ISystemRepository _systemRepository;
