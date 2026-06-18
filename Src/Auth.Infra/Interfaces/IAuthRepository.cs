@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using Auth.Infra.Identity;
+using Auth.Domain.Entities;
 
 namespace Auth.Infra.Interfaces
 {
@@ -10,8 +11,20 @@ namespace Auth.Infra.Interfaces
     /// </summary>
     public interface IAuthRepository
     {
+        // RefreshToken
+
+        /// <summary>
+        /// Atualiza o refresh token excluindo refreshTokens anteriores
+        /// </summary>
+        Task<bool> updateRefreshToken(RefreshToken newRefreshToken);
+
+        /// <summary>
+        /// Obtem um refresh token com base no guid do refreshToken
+        /// </summary>
+        Task<RefreshToken?> getRefreshToken(Guid refreshToken);
+
         // Usuarios
-        
+
         /// <summary>
         /// Obtém um usuário através do seu endereço de e-mail.
         /// </summary>

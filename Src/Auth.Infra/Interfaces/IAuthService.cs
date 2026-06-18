@@ -1,4 +1,5 @@
-﻿using Auth.Domain.ViewModel;
+﻿using Auth.Domain.Models;
+using Auth.Domain.ViewModel;
 
 namespace Auth.Infra.Interfaces;
 
@@ -7,6 +8,11 @@ namespace Auth.Infra.Interfaces;
 /// </summary>
 public interface IAuthService
 {
+    /// <summary>
+    /// Realiza a reemissão do jwt com base em um refreshToken
+    /// </summary>
+    Task<string?> RefreshToken(RefreshTokenRequestViewModel request, string scheme, string host);
+
     /// <summary>
     /// Realiza o cadastro de um novo usuário, validando se já existe e integrando com outros sistemas.
     /// </summary>

@@ -1,4 +1,5 @@
 ﻿using Auth.Application.Repositories;
+using Auth.Domain.Entities;
 using Auth.Infra.Data;
 using Auth.Infra.Identity;
 using Auth.Infra.Interfaces;
@@ -26,6 +27,23 @@ namespace Auth.Infra.Repositories
             _roleManager = roleManager;
             _context = context;
         }
+
+        // Refresh token
+        public async Task<bool> updateRefreshToken(RefreshToken newRefreshToken)
+            => await ExecuteAsync(async () =>
+            {
+                _context.RefreshTokens.RemoveRange(
+                    _context.RefreshTokens.Where(rt => rt.UserName == newRefreshToken.UserName)
+                    );
+                await _context.RefreshTokens.AddAsync(newRefreshToken);
+                await _context.SaveChangesAsync();
+                return true;
+            });
+
+        public async Task<RefreshToken?> getRefreshToken(Guid refreshToken)
+            => await ExecuteAsync(async () =>
+                    await _context.RefreshTokens.AsNoTracking().
+                        FirstOrDefaultAsync(rt => rt.Token == refreshToken));
 
         // Usuarios
         public async Task<IdentityResult> AdicionarUsuarioAsync(ApplicationUser user, string password) =>

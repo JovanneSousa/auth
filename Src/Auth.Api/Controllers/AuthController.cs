@@ -1,4 +1,5 @@
 ﻿using Auth.Api.Controllers;
+using Auth.Domain.Models;
 using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -49,9 +50,9 @@ namespace fin_api.Controllers
         [HttpPost("login")]
         public async Task<ActionResult> Login(LoginUserViewModel loginUser)
         {
-            var sheme = HttpContext.Request.Scheme;
+            var scheme = HttpContext.Request.Scheme;
             var host = HttpContext.Request.Host.ToString();
-            return CustomResponse(new { token = await _authService.LogarUsuarioAsync(loginUser, sheme, host) });
+            return CustomResponse(new { token = await _authService.LogarUsuarioAsync(loginUser, scheme, host) });
         }
 
         /// <summary>
@@ -95,5 +96,19 @@ namespace fin_api.Controllers
         [HttpGet("details-user/{id}")]
         public async Task<ActionResult<AuthUserViewModel>> ObterUsuarioPorId(string id) 
             => CustomResponse(await _authService.ObterUsuarioPorId(id));
+
+        /// <summary>
+        /// Retorna um jwt com base em um refreshToken
+        /// </summary>
+        /// <param name="refreshTokenViewModel">refresh token e sistema.</param>
+        /// <returns>retorna token jwt em formato de string.</returns>
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestViewModel refreshTokenViewModel)
+        {
+            var scheme = HttpContext.Request.Scheme;
+            var host = HttpContext.Request.Host.ToString();
+            return CustomResponse(await _authService.RefreshToken(refreshTokenViewModel, scheme, host));
+        }
     }
 }
