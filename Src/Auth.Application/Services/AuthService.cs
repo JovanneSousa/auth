@@ -10,7 +10,6 @@ using FluentValidation.Results;
 using Messages;
 using Messages.Integration;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NetDevPack.Security.Jwt.Core.Interfaces;

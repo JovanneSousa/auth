@@ -108,7 +108,7 @@ namespace fin_api.Controllers
         {
             var scheme = HttpContext.Request.Scheme;
             var host = HttpContext.Request.Host.ToString();
-            return CustomResponse(await _authService.RefreshToken(refreshTokenViewModel, scheme, host));
+            return CustomResponse(new {Token = await _authService.RefreshToken(refreshTokenViewModel, scheme, host) });
         }
     }
 }
