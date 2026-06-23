@@ -11,7 +11,6 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddMudServices();
 
 
-
 if(builder.HostEnvironment.IsDevelopment())
 {
     builder.Services.AddScoped(sp => new HttpClient
@@ -27,6 +26,6 @@ if(builder.HostEnvironment.IsDevelopment())
 }
 
 builder.Services.AddScoped<IApiService, ApiService>();
-
+    
 
 await builder.Build().RunAsync();

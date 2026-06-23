@@ -3,7 +3,7 @@ using Auth.Infra.Data;
 using Auth.Infra.Identity;
 using Microsoft.AspNetCore.Identity;
 using NetDevPack.Security.Jwt.Core.Jwa;
-using System.Text;
+using Utils;
 
 namespace Auth.Configuration
 {
@@ -22,6 +22,8 @@ namespace Auth.Configuration
                 .AddRoles<ApplicationRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
+
+            builder.AddIdentityClientConfig();
 
             return builder;
         }

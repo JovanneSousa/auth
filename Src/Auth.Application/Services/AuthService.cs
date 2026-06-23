@@ -240,7 +240,7 @@ public class AuthService : BaseService, IAuthService
         var userRoles = await ExecuteAsync(async () => await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user));
         var roleClaims = new List<Claim>();
 
-        foreach (var roleName in userRoles)
+        foreach (var roleName in userRoles ?? new List<string>())
         {
             var role = await _authRepository.ObterRolePorNomeAsync(roleName);
             if (role == null) continue;

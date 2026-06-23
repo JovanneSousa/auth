@@ -1,6 +1,8 @@
 ﻿using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Utils.Extensions;
 
 namespace Auth.Api.Controllers
 {
@@ -8,6 +10,7 @@ namespace Auth.Api.Controllers
     /// Controller responsável pela gestão de ecossistemas (sistemas), perfis (roles) e permissões (claims).
     /// </summary>
     [Route("/api/sistema")]
+    [Authorize]
     public class SistemaController : ApiController
     {
         private readonly ISystemService _systemService;

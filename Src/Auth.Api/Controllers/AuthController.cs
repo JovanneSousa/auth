@@ -3,6 +3,7 @@ using Auth.Domain.Models;
 using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Utils.Extensions;
 
 namespace fin_api.Controllers
 {
@@ -85,6 +86,7 @@ namespace fin_api.Controllers
         /// </summary>
         /// <returns>Lista de ViewModels de usuários.</returns>
         [HttpGet("listar-usuarios")]
+        [ClaimsAuthorize("AUTH:LER")]
         public async Task<ActionResult<IEnumerable<AuthUserViewModel>>> ListarUsuarios()
             => CustomResponse(await _authService.ListarAuthUser());
 
@@ -94,6 +96,7 @@ namespace fin_api.Controllers
         /// <param name="id">Identificador único do usuário.</param>
         /// <returns>ViewModel com detalhes do usuário.</returns>
         [HttpGet("details-user/{id}")]
+        [ClaimsAuthorize("AUTH:LER")]
         public async Task<ActionResult<AuthUserViewModel>> ObterUsuarioPorId(string id) 
             => CustomResponse(await _authService.ObterUsuarioPorId(id));
 
