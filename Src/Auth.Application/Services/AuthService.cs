@@ -111,15 +111,17 @@ public class AuthService : BaseService, IAuthService
         string scheme, string host
         )
     {
-        var user = await _authRepository.ObterUsuarioPorEmailAsync(loginUser.Email);
+        var user = await ExecuteAsync(async () => await _authRepository.ObterUsuarioPorEmailAsync(loginUser.Email));
         if (user == null || string.IsNullOrWhiteSpace(user.UserName))
             return RetornaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
 
-        var resultCorrectPass = await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true);
-        if (!resultCorrectPass.Succeeded)
+        var resultCorrectPass = await ExecuteAsync(async () => 
+            await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true));
+        if (resultCorrectPass is null || !resultCorrectPass.Succeeded)
             return RetornaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
 
-        await _signInManager.SignInAsync(user, false);
+        await ExecuteAsync(async () => 
+            await _signInManager.SignInAsync(user, false));
 
         var claims = await MountUserClaims(user, loginUser.System);
         var token = await GenerateJwt(loginUser.Email, loginUser.System, scheme, host, user, claims);
@@ -131,6 +133,8 @@ public class AuthService : BaseService, IAuthService
         return MontarLoginResponse(user, token, claims, refreshToken);
     }
 
+
+    // Pode ser otimizado
     public async Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data)
     {
         var user = await _authRepository.ObterUsuarioPorEmailAsync(data.Email);
@@ -235,6 +239,7 @@ public class AuthService : BaseService, IAuthService
 
     }
 
+    // Da pra otimizar
     private async Task<IList<Claim>> GerarListaDeClaimsPorUserRole(ApplicationUser user)
     {
         var userRoles = await ExecuteAsync(async () => await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user));

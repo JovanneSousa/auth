@@ -1,5 +1,7 @@
 using Auth.Api.Configuration;
-using Auth.Configuration;
+using Auth.Infra.Data;
+using Auth.Infra.Identity;
+using Jovanne.Jwks;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,11 +12,18 @@ builder.Services.AddControllers();
 await builder
     .AddDbContextConfig()
     .AddCorsConfig()
-    .AddIdentityConfig()
     .AddSettingsConfig()
     .AddDiConfig();
 
-builder.Services.AddRazorPages();
+builder.Services
+    .AddRazorPages();
+
+builder.Services
+    .AddJovanneJwksFull<
+        ApplicationUser, 
+        ApplicationRole, 
+        ApplicationDbContext>
+        (builder.Configuration, builder.Environment.IsDevelopment());
 
 builder = await builder.AddMessageBus();
 

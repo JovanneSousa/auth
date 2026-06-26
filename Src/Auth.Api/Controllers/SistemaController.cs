@@ -2,7 +2,6 @@
 using Auth.Infra.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Utils.Extensions;
 
 namespace Auth.Api.Controllers
 {

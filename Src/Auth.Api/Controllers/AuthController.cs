@@ -2,8 +2,8 @@
 using Auth.Domain.Models;
 using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
+using Jovanne.Jwks.Client.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Utils.Extensions;
 
 namespace fin_api.Controllers
 {
