@@ -65,7 +65,7 @@ namespace Auth.Infra.Interfaces
         /// <summary>
         /// Obtém todas as Claims associadas diretamente a um usuário.
         /// </summary>
-        Task<IList<Claim>> ObterClaimsAsync(ApplicationUser user);
+        Task<IList<Claim>> ObterClaimsPorUsuarioAsync(ApplicationUser user);
 
         /// <summary>
         /// Busca as Roles e suas respectivas Claims a partir de uma lista de identificadores de Roles.

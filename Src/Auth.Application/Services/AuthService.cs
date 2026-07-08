@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NetDevPack.Security.Jwt.Core.Interfaces;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FV = FluentValidation.Results;
@@ -196,7 +197,10 @@ public class AuthService : BaseService, IAuthService
 
     private async Task<IList<Claim>?> MountUserClaims(ApplicationUser user, string system)
     {
-        var claims = await GerarListaDeClaimsPorUserRole(user);
+        var claims = await ExecuteAsync(async () => 
+            await _authRepository.ObterClaimsPorUsuarioAsync(user));
+        if (claims is null) return default;
+
         if (!await UsuarioTemPermissao(user, system.ToUpper(), claims))
             return default;
 
@@ -237,24 +241,6 @@ public class AuthService : BaseService, IAuthService
             return RetornaErroProcessamento<string>("Erro atualizando refresh token");
         return refreshToken.Token.ToString();
 
-    }
-
-    // Da pra otimizar
-    private async Task<IList<Claim>> GerarListaDeClaimsPorUserRole(ApplicationUser user)
-    {
-        var userRoles = await ExecuteAsync(async () => await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user));
-        var roleClaims = new List<Claim>();
-
-        foreach (var roleName in userRoles ?? new List<string>())
-        {
-            var role = await _authRepository.ObterRolePorNomeAsync(roleName);
-            if (role == null) continue;
-
-            var claims = await _authRepository.ObterClaimsRoleAsync(role);
-            roleClaims.AddRange(claims);
-        }
-
-        return roleClaims;
     }
 
     private async Task<bool> UsuarioTemPermissao(ApplicationUser user, string system, IList<Claim> claims)

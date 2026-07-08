@@ -63,10 +63,20 @@ namespace Auth.Infra.Repositories
             await ExecuteAsync(async () => await _roleManager.AddClaimAsync(role, claim));
         public async Task<IdentityResult> ExcluirRoleClaim(ApplicationRole role, Claim claim) =>
             await ExecuteAsync(async () => await _roleManager.RemoveClaimAsync(role, claim));
-        public async Task<IList<Claim>> ObterClaimsAsync(ApplicationUser user) =>
-            await ExecuteAsync(async () => await _userManager.GetClaimsAsync(user));
         public async Task<IList<Claim>> ObterClaimsRoleAsync(ApplicationRole role) =>
             await ExecuteAsync(async () => await _roleManager.GetClaimsAsync(role));
+        public async Task<IList<Claim>> ObterClaimsPorUsuarioAsync(ApplicationUser user) =>
+            await ExecuteAsync(async () =>
+            {
+                return await _context.RoleClaims
+                    .Where(rc =>
+                            _context.UserRoles
+                                .Where(ur => ur.UserId == user.Id)
+                                .Select(ur => ur.RoleId)
+                                .Contains(rc.RoleId))
+                    .Select(c => new Claim(c.ClaimType!, c.ClaimValue!))
+                    .ToListAsync();
+            });
         public async Task<IList<ApplicationRole>> ObterClaimsPorRoleIdsAsync(List<string> rolesIds) =>
             await ExecuteAsync(async () => 
                 await _context.Roles
