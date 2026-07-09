@@ -3,6 +3,10 @@ using Auth.Domain.Entities;
 using Auth.Infra.Interfaces;
 
 namespace Auth.Infra.Notifications;
+/// <summary>
+/// Componente responsável por centralizar e gerir notificações de erros de negócio durante o fluxo da requisição.
+/// Utiliza o padrão Notification Pattern para evitar o lançamento de exceções para fluxos esperados.
+/// </summary>
 public class Notificador : INotificador
 {
     public List<Notificacao> _notificacoes;

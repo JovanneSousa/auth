@@ -21,7 +21,7 @@ namespace Auth.Application.Services
             }
             catch (DatabaseException ex)
             {
-                return _notificador.Handle<T>($"Erro no banco: {ex.Message}");
+                return RetornaErroProcessamento<T>($"Erro no banco: {ex.Message}");
             }
         }
 

@@ -1,4 +1,5 @@
 ﻿using Auth.Application.Repositories;
+using Auth.Domain.Entities;
 using Auth.Infra.Data;
 using Auth.Infra.Identity;
 using Auth.Infra.Interfaces;
@@ -8,6 +9,10 @@ using System.Security.Claims;
 
 namespace Auth.Infra.Repositories
 {
+    /// <summary>
+    /// Repositório de infraestrutura para gestão de usuários, perfis e permissões utilizando ASP.NET Identity.
+    /// Encapsula operações do UserManager e RoleManager com tratamento de exceções de banco de dados.
+    /// </summary>
     public class AuthRepository : BaseRepository, IAuthRepository
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -22,6 +27,23 @@ namespace Auth.Infra.Repositories
             _roleManager = roleManager;
             _context = context;
         }
+
+        // Refresh token
+        public async Task<bool> updateRefreshToken(RefreshToken newRefreshToken)
+            => await ExecuteAsync(async () =>
+            {
+                _context.RefreshTokens.RemoveRange(
+                    _context.RefreshTokens.Where(rt => rt.UserName == newRefreshToken.UserName)
+                    );
+                await _context.RefreshTokens.AddAsync(newRefreshToken);
+                await _context.SaveChangesAsync();
+                return true;
+            });
+
+        public async Task<RefreshToken?> getRefreshToken(Guid refreshToken)
+            => await ExecuteAsync(async () =>
+                    await _context.RefreshTokens.AsNoTracking().
+                        FirstOrDefaultAsync(rt => rt.Token == refreshToken));
 
         // Usuarios
         public async Task<IdentityResult> AdicionarUsuarioAsync(ApplicationUser user, string password) =>
@@ -41,10 +63,20 @@ namespace Auth.Infra.Repositories
             await ExecuteAsync(async () => await _roleManager.AddClaimAsync(role, claim));
         public async Task<IdentityResult> ExcluirRoleClaim(ApplicationRole role, Claim claim) =>
             await ExecuteAsync(async () => await _roleManager.RemoveClaimAsync(role, claim));
-        public async Task<IList<Claim>> ObterClaimsAsync(ApplicationUser user) =>
-            await ExecuteAsync(async () => await _userManager.GetClaimsAsync(user));
         public async Task<IList<Claim>> ObterClaimsRoleAsync(ApplicationRole role) =>
             await ExecuteAsync(async () => await _roleManager.GetClaimsAsync(role));
+        public async Task<IList<Claim>> ObterClaimsPorUsuarioAsync(ApplicationUser user) =>
+            await ExecuteAsync(async () =>
+            {
+                return await _context.RoleClaims
+                    .Where(rc =>
+                            _context.UserRoles
+                                .Where(ur => ur.UserId == user.Id)
+                                .Select(ur => ur.RoleId)
+                                .Contains(rc.RoleId))
+                    .Select(c => new Claim(c.ClaimType!, c.ClaimValue!))
+                    .ToListAsync();
+            });
         public async Task<IList<ApplicationRole>> ObterClaimsPorRoleIdsAsync(List<string> rolesIds) =>
             await ExecuteAsync(async () => 
                 await _context.Roles

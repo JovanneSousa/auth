@@ -1,4 +1,10 @@
-﻿using Auth.Domain.Entities;
+﻿using Auth.Application.Queries.Interfaces;
+using Auth.Domain.Entities;
+using Auth.Domain.Extensions;
+using Auth.Domain.Models;
+using Auth.Domain.ViewModel;
+using Auth.Infra.Identity;
+using Auth.Infra.Interfaces;
 using Bus;
 using FluentValidation.Results;
 using Messages;
@@ -6,17 +12,17 @@ using Messages.Integration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using NetDevPack.Security.Jwt.Core.Interfaces;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FV = FluentValidation.Results;
-using Auth.Domain.ViewModel;
-using Auth.Infra.Interfaces;
-using Auth.Infra.Identity;
-using Auth.Application.Queries.Interfaces;
-using NetDevPack.Security.Jwt.Core.Interfaces;
 
 namespace Auth.Application.Services;
 
+/// <summary>
+/// Serviço de aplicação para gestão de autenticação, usuários e integração de identidade.
+/// </summary>
 public class AuthService : BaseService, IAuthService
 {
     private readonly IAuthRepository _authRepository;
@@ -25,6 +31,7 @@ public class AuthService : BaseService, IAuthService
     private readonly string _frontUrl;
     private readonly IAuthQueryService _authQuery;
     private readonly IJwtService _jwksService;
+    private readonly AppTokenSettings _appTokenSettings;
 
     public AuthService(
         IAuthRepository authRepository,
@@ -34,8 +41,10 @@ public class AuthService : BaseService, IAuthService
         IMessageBus messageBus,
         IOptions<FrontEndSettings> settings,
         IJwtService jwksService,
+        IOptions<AppTokenSettings> appTokenSettings,
         IAuthQueryService authQuery) : base(notificador)
     {
+        _appTokenSettings = appTokenSettings.Value;
         _jwksService = jwksService;
         _authRepository = authRepository;
         _signInManager = signInManager;
@@ -103,27 +112,30 @@ public class AuthService : BaseService, IAuthService
         string scheme, string host
         )
     {
-        var user = await _authRepository.ObterUsuarioPorEmailAsync(loginUser.Email);
+        var user = await ExecuteAsync(async () => await _authRepository.ObterUsuarioPorEmailAsync(loginUser.Email));
         if (user == null || string.IsNullOrWhiteSpace(user.UserName))
             return RetornaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
 
-        var resultCorrectPass = await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true);
-        if (!resultCorrectPass.Succeeded)
+        var resultCorrectPass = await ExecuteAsync(async () => 
+            await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true));
+        if (resultCorrectPass is null || !resultCorrectPass.Succeeded)
             return RetornaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
 
-        var claims = await GerarListaDeClaimsPorUserRole(user);
-        if (!await UsuarioTemPermissao(user, loginUser.System.ToUpper(), claims))
+        await ExecuteAsync(async () => 
+            await _signInManager.SignInAsync(user, false));
+
+        var claims = await MountUserClaims(user, loginUser.System);
+        var token = await GenerateJwt(loginUser.Email, loginUser.System, scheme, host, user, claims);
+        var refreshToken = await GenerateRefreshToken(loginUser.Email);
+
+        if (string.IsNullOrEmpty(token) || claims is null || string.IsNullOrEmpty(refreshToken))
             return default;
 
-        claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
-
-        await _signInManager.SignInAsync(user, false);
-
-        var token = await GerarTokenAsync(claims, scheme, host);
-
-        return MontarLoginResponse(user, token, claims);
+        return MontarLoginResponse(user, token, claims, refreshToken);
     }
 
+
+    // Pode ser otimizado
     public async Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data)
     {
         var user = await _authRepository.ObterUsuarioPorEmailAsync(data.Email);
@@ -162,21 +174,73 @@ public class AuthService : BaseService, IAuthService
         return true;
     }
 
-    private async Task<IList<Claim>> GerarListaDeClaimsPorUserRole(ApplicationUser user)
+    public async Task<string?> RefreshToken(RefreshTokenRequestViewModel request, string scheme, string host)
     {
-        var userRoles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user);
-        var roleClaims = new List<Claim>();
+        Guid parsedToken;
+        if (string.IsNullOrEmpty(request.RefreshToken) || 
+            string.IsNullOrEmpty(request.System) || 
+            !Guid.TryParse(request.RefreshToken, out parsedToken))
+            return RetornaErroProcessamento<string>("Refresh token inválido");
 
-        foreach (var roleName in userRoles)
+
+        var tokenPersisted = await ExecuteAsync(async () => await _authRepository.getRefreshToken(parsedToken));
+
+        if (tokenPersisted is null)
+            return RetornaErroProcessamento<string>("Refresh Token expirado");
+
+        var token = await GenerateJwt(tokenPersisted.UserName, request.System, scheme, host);
+        if (string.IsNullOrEmpty(token))
+            return default;
+
+        return token;
+    }
+
+    private async Task<IList<Claim>?> MountUserClaims(ApplicationUser user, string system)
+    {
+        var claims = await ExecuteAsync(async () => 
+            await _authRepository.ObterClaimsPorUsuarioAsync(user));
+        if (claims is null) return default;
+
+        if (!await UsuarioTemPermissao(user, system.ToUpper(), claims))
+            return default;
+
+        claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
+        return claims;
+    }
+
+
+    private async Task<string?> GenerateJwt(
+        string email,
+        string system,
+        string scheme,
+        string host,
+        ApplicationUser? user = null,
+        IList<Claim>? claims = null)
+    {
+        user ??= await ExecuteAsync(
+                async () => await _authRepository.ObterUsuarioPorEmailAsync(email));
+        if (user is null)
+            return RetornaErroProcessamento<string>("Usuario não encontrado!");
+
+        claims ??= await MountUserClaims(user, system);
+        if (claims is null)
+            return RetornaErroProcessamento<string>("Falha ao buscar as claims para gerar o jwt");
+
+        return await GerarTokenAsync(claims, scheme, host);
+    }
+
+    private async Task<string?> GenerateRefreshToken(string email)
+    {
+        var refreshToken = new RefreshToken
         {
-            var role = await _authRepository.ObterRolePorNomeAsync(roleName);
-            if (role == null) continue;
+            UserName = email,
+            ExpirationDate = DateTime.UtcNow.AddDays(_appTokenSettings.RefreshTokenExpiration)
+        };
+        var result = await _authRepository.updateRefreshToken(refreshToken);
+        if (!result)
+            return RetornaErroProcessamento<string>("Erro atualizando refresh token");
+        return refreshToken.Token.ToString();
 
-            var claims = await _authRepository.ObterClaimsRoleAsync(role);
-            roleClaims.AddRange(claims);
-        }
-
-        return roleClaims;
     }
 
     private async Task<bool> UsuarioTemPermissao(ApplicationUser user, string system, IList<Claim> claims)
@@ -301,11 +365,12 @@ public class AuthService : BaseService, IAuthService
         return tokenHandler.WriteToken(token);
     }
 
-    private LoginResponseViewModel MontarLoginResponse(ApplicationUser user, string token, IEnumerable<Claim> claims)
+    private LoginResponseViewModel MontarLoginResponse(ApplicationUser user, string token, IEnumerable<Claim> claims, string refreshToken)
     {
         return new LoginResponseViewModel
         {
             AccessToken = token,
+            RefreshToken = refreshToken,
             ExpiresIn = TimeSpan
                 .FromHours(1)
                 .TotalSeconds,
