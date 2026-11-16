@@ -29,7 +29,9 @@ namespace Auth.Infra.Repositories
         public async Task<bool> AtualizarAsync(SystemEntity system)
             => await ExecuteAsync(async () =>
                 {
-                    _context.Update(system);
+                    if (_context.Entry(system).State == EntityState.Detached)
+                        _context.Update(system);
+
                     await _context.SaveChangesAsync();
                     return true;
                 });
@@ -43,12 +45,13 @@ namespace Auth.Infra.Repositories
                 });
 
         public async Task<IEnumerable<SystemEntity>> ObterTodosSistemasAsync()
-            => await ExecuteAsync(async () => await _context.SystemEntity.ToListAsync());
+            => await ExecuteAsync(async () => await _context.SystemEntity.AsNoTracking().ToListAsync());
 
         public async Task<IEnumerable<SystemEntity>> ObterSistemasPorRolesAsync(IEnumerable<string> systemIds)
         {
             return await ExecuteAsync(async () => 
                     await _context.SystemEntity
+                        .AsNoTracking()
                         .Where(s => systemIds.Contains(s.Id))
                         .ToListAsync());
         }
@@ -59,7 +62,7 @@ namespace Auth.Infra.Repositories
         public async Task<SystemEntity?> ObterSistemaPorNome(string nome)
         {
             return await ExecuteAsync(
-                async () => await _context.SystemEntity.FirstOrDefaultAsync(s => s.Name == nome)
+                async () => await _context.SystemEntity.AsNoTracking().FirstOrDefaultAsync(s => s.Name == nome)
                 );
         }
 

@@ -98,10 +98,10 @@ public class AuthService : BaseService, IAuthService
             if (string.IsNullOrWhiteSpace(usuarioExistente.UserName))
                 return RetornaErroProcessamento<string?>("O Nome de usuário não pode ser nulo");
 
-            var executaLogin =
-                await _signInManager.PasswordSignInAsync(usuarioExistente.UserName, registerUser.Password, false, true);
+            var executaLogin = await ExecuteAsync(async () =>
+                await _signInManager.CheckPasswordSignInAsync(usuarioExistente, registerUser.Password, lockoutOnFailure: true));
 
-            if (!executaLogin.Succeeded)
+            if (executaLogin is null || !executaLogin.Succeeded)
                 return RetornaErroProcessamento<string?>("A senha deve ser a mesma do outro sistema para a liberação de permissão!");
 
             var jaPossuiRole = await ExecuteAsync(async () =>
@@ -115,7 +115,7 @@ public class AuthService : BaseService, IAuthService
 
         if (!EhSistemaAuthLocal(registerUser.System))
         {
-            var usuarioRegistrado = await RegistraUsuario(registerUser);
+            var usuarioRegistrado = await RegistraUsuario(user, registerUser);
 
             if (usuarioRegistrado == null || !usuarioRegistrado.ValidationResult.IsValid)
             {
@@ -126,7 +126,7 @@ public class AuthService : BaseService, IAuthService
             }
         }
 
-        if (!await SalvaUserRoles(user, registerUser.Profile, registerUser.System))
+        if (!await SalvaUserRoles(user, roleEntity))
         {
             if (novoUsuarioCriado)
                 await _authRepository.DeleteAsync(user);
@@ -152,31 +152,30 @@ public class AuthService : BaseService, IAuthService
             return RetornaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
 
         var resultCorrectPass = await ExecuteAsync(async () => 
-            await _signInManager.PasswordSignInAsync(user.UserName, loginUser.Password, false, true));
+            await _signInManager.CheckPasswordSignInAsync(user, loginUser.Password, lockoutOnFailure: true));
         if (resultCorrectPass is null || !resultCorrectPass.Succeeded)
             return RetornaErroProcessamento<LoginResponseViewModel?>("usuário ou senha incorretos!");
 
-        await ExecuteAsync(async () => 
-            await _signInManager.SignInAsync(user, false));
-
         var claims = await MountUserClaims(user, loginUser.System);
-        var token = await GenerateJwt(loginUser.Email, loginUser.System, scheme, host, user, claims);
+        if (claims is null)
+            return default;
+
+        var token = await GerarTokenAsync(claims, scheme, host);
         var refreshToken = await GenerateRefreshToken(loginUser.Email);
 
-        if (string.IsNullOrEmpty(token) || claims is null || string.IsNullOrEmpty(refreshToken))
+        if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(refreshToken))
             return default;
 
         return MontarLoginResponse(user, token, claims, refreshToken);
     }
 
 
-    // Pode ser otimizado
     public async Task<bool> GerarTokenResetarSenha(ForgotPassViewModel data)
     {
         var user = await _authRepository.ObterUsuarioPorEmailAsync(data.Email);
         if (user == null) return true;
 
-        var confirmado = await _authRepository.isEmailConfirmed(user);
+        var confirmado = user.EmailConfirmed || await _authRepository.isEmailConfirmed(user);
         if (!confirmado) return true;
 
         var token = await _authRepository.GeraTokenReset(user);
@@ -229,7 +228,7 @@ public class AuthService : BaseService, IAuthService
         if (claims is null)
             return default;
 
-        var token = await GenerateJwt(tokenPersisted.UserName, request.System, scheme, host, user, claims);
+        var token = await GerarTokenAsync(claims, scheme, host);
         var newRefreshToken = await GenerateRefreshToken(tokenPersisted.UserName);
 
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(newRefreshToken))
@@ -249,27 +248,6 @@ public class AuthService : BaseService, IAuthService
 
         claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
         return claims;
-    }
-
-
-    private async Task<string?> GenerateJwt(
-        string email,
-        string system,
-        string scheme,
-        string host,
-        ApplicationUser? user = null,
-        IList<Claim>? claims = null)
-    {
-        user ??= await ExecuteAsync(
-                async () => await _authRepository.ObterUsuarioPorEmailAsync(email));
-        if (user is null)
-            return RetornaErroProcessamento<string>("Usuario não encontrado!");
-
-        claims ??= await MountUserClaims(user, system);
-        if (claims is null)
-            return RetornaErroProcessamento<string>("Falha ao buscar as claims para gerar o jwt");
-
-        return await GerarTokenAsync(claims, scheme, host);
     }
 
     private async Task<string?> GenerateRefreshToken(string email)
@@ -292,10 +270,6 @@ public class AuthService : BaseService, IAuthService
             return RetornaErroProcessamento<bool>("Sistema inválido!");
 
         var normalizedSystem = system.Trim().ToUpperInvariant();
-        var sistemaExiste = await ExecuteAsync(async () => await _authRepository.SistemaExisteAsync(normalizedSystem));
-        if (!sistemaExiste)
-            return RetornaErroProcessamento<bool>("Sistema não encontrado!");
-
         var prefix = normalizedSystem.EndsWith(':') ? normalizedSystem : $"{normalizedSystem}:";
 
         var hasPermission = claims.Any(c =>
@@ -303,32 +277,23 @@ public class AuthService : BaseService, IAuthService
             c.Value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
             );
 
-        if (!hasPermission)
-            return RetornaErroProcessamento<bool>("Usuário não tem permissão nesse sistema!");
+        if (hasPermission)
+            return true;
 
-        return true;
+        var sistemaExiste = await ExecuteAsync(async () => await _authRepository.SistemaExisteAsync(normalizedSystem));
+        if (!sistemaExiste)
+            return RetornaErroProcessamento<bool>("Sistema não encontrado!");
+
+        return RetornaErroProcessamento<bool>("Usuário não tem permissão nesse sistema!");
     }
 
-    private async Task<ResponseMessage> RegistraUsuario(RegisterUserViewModel registerUser)
+    private async Task<ResponseMessage> RegistraUsuario(ApplicationUser usuario, RegisterUserViewModel registerUser)
     {
-        var usuario = await _authRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
-
-        if (usuario == null)
-        {
-            _notificador.Handle("Usuario não encontrado!");
-            return new ResponseMessage(
-                new ValidationResult(
-                        [
-                            new FV.ValidationFailure("", "Usuario não encontrado!")
-                        ]
-                    ));
-        }
-
         var usuarioRegistrado = new UsuarioRegistradoIntegrationEvent
         {
             Id = usuario.Id,
             Nome = registerUser.Nome,
-            Email = usuario.Email
+            Email = usuario.Email ?? registerUser.Email
         };
 
         try
@@ -388,20 +353,8 @@ public class AuthService : BaseService, IAuthService
             }
         };
 
-    private async Task<bool> SalvaUserRoles(ApplicationUser user, string role, string system)
+    private async Task<bool> SalvaUserRoles(ApplicationUser user, ApplicationRole roleEntity)
     {
-        var roleEntity = await ExecuteAsync(async () =>
-            await _authRepository.ObterRolePorSistemaENomeAsync(system, role));
-
-        if (roleEntity is null)
-            return RetornaErroProcessamento<bool>("Perfil não encontrado para o sistema informado!");
-
-        var jaPossuiRole = await ExecuteAsync(async () =>
-            await _authRepository.UsuarioPossuiRolePorIdAsync(user.Id, roleEntity.Id));
-
-        if (jaPossuiRole)
-            return RetornaErroProcessamento<bool>("O usuário ja tem esse perfil!");
-
         var resultAddRole = await ExecuteAsync(async () =>
             await _authRepository.SalvaUserRolePorIdAsync(user.Id, roleEntity.Id));
 
