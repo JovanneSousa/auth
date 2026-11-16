@@ -1,4 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+
+@inject IAuthStateService AuthState
+@inject NavigationManager Navigation
 
 @* Required *@
 <MudThemeProvider />
@@ -10,20 +14,97 @@
 @* Needed for snackbars *@
 <MudSnackbarProvider />
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
+@if (!AuthState.IsInitialized)
+{
+    <MudContainer Class="d-flex align-center justify-center" Style="min-height: 90vh;">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    </MudContainer>
+}
+else if (IsLoginRoute)
+{
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
         <article class="content px-4">
             @Body
         </article>
-
-        <Footer />
     </main>
-</div>
+}
+else if (AuthState.IsAuthenticated)
+{
+    <div class="page">
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+
+        <main>
+            <div class="top-row px-4 d-flex justify-end align-center">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText Typo="Typo.body2">@AuthState.UserEmail</MudText>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Logout"
+                               OnClick="SairAsync">
+                        Sair
+                    </MudButton>
+                </MudStack>
+            </div>
+
+            <article class="content px-4">
+                @Body
+            </article>
+
+            <Footer />
+        </main>
+    </div>
+}
+
+@code {
+    private bool IsLoginRoute =>
+        Navigation.ToBaseRelativePath(Navigation.Uri)
+            .TrimStart('/')
+            .StartsWith("login", StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState.OnChange += HandleAuthStateChanged;
+        await AuthState.InitializeAsync();
+        EnforceAuthenticationRedirect();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (AuthState.IsInitialized)
+        {
+            EnforceAuthenticationRedirect();
+        }
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        EnforceAuthenticationRedirect();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void EnforceAuthenticationRedirect()
+    {
+        if (!AuthState.IsAuthenticated && !IsLoginRoute)
+        {
+            Navigation.NavigateTo("/login", replace: true);
+        }
+        else if (AuthState.IsAuthenticated && IsLoginRoute)
+        {
+            Navigation.NavigateTo("/", replace: true);
+        }
+    }
+
+    private async Task SairAsync()
+    {
+        await AuthState.LogoutAsync();
+        Navigation.NavigateTo("/login", replace: true);
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= HandleAuthStateChanged;
+    }
+}

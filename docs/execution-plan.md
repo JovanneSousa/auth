@@ -26,20 +26,20 @@
 
 ## Fase 2 — Segurança e Finalização do CRUD de Sistemas e Usuários (Backend)
 
-- [ ] **Proteger endpoints administrativos com Claims**
+- [x] **Proteger endpoints administrativos com Claims**
   - Substituir `[Authorize]` genérico em `SistemaController` por `[ClaimsAuthorize("AUTH:...")]` (ex.: `AUTH:LER`, `AUTH:ESCREVER`, `AUTH:EXCLUIR` ou `AUTH:ADMIN`).
   - Adicionar `[ClaimsAuthorize("AUTH:...")]` em `DELETE /api/auth/excluir/{id}` (`AuthController.cs`).
-- [ ] **Corrigir retornos silenciosos em `SystemService` e tratamento de erro no repositório**
+- [x] **Corrigir retornos silenciosos em `SystemService` e tratamento de erro no repositório**
   - Adicionar `return` nas chamadas `RetornaErroProcessamento<bool>(...)` em `SystemService.AtualizaSistemaAsync` e `SystemService.RemoverRole`.
   - Envolver `SystemRepository.AtualizarAsync` com `ExecuteAsync(...)` do `BaseRepository`.
-- [ ] **Implementar remoção de sistema (`DELETE /api/sistema/{id}`)**
+- [x] **Implementar remoção de sistema (`DELETE /api/sistema/{id}`)**
   - Adicionar action `DELETE` em `SistemaController.cs`.
   - Implementar `SystemService.RemoveSistemaAsync(string sistemaId)` (atualmente lança `NotImplementedException`), validando se existem roles/usuários vinculados antes da exclusão.
-- [ ] **Reativar exclusão/desativação de usuário**
+- [x] **Reativar exclusão/desativação de usuário**
   - Corrigir `AuthRepository.DeleteAsync` (atualmente retorna `IdentityResult.Success` com `_userManager.DeleteAsync(usuario)` comentado) — definir entre exclusão física ou soft delete/bloqueio.
-- [ ] **Criar endpoint de listagem de usuários por sistema**
+- [x] **Criar endpoint de listagem de usuários por sistema**
   - Expor `GET /api/sistema/{id}/usuarios` (ou filtro em `AuthQueryService`) retornando usuários e suas roles vinculadas àquele sistema.
-- [ ] **Desacoplar registro de usuário para novos sistemas sem consumidor RabbitMQ**
+- [x] **Desacoplar registro de usuário para novos sistemas sem consumidor RabbitMQ**
   - Evitar usuário órfão no Identity quando `CriaUserIdentity` sucede mas `_messageBus.RequestAsync` falha/dá timeout.
   - Tornar a sincronização via RabbitMQ configurável por sistema (ou implementar compensação removendo o usuário recém-criado em caso de falha na integração).
 
@@ -47,7 +47,7 @@
 
 ## Fase 3 — Autenticação e Fluxos Incompletos no Painel Admin (`Auth.Client`)
 
-- [ ] **Implementar tela e fluxo de Login no `Auth.Client`**
+- [x] **Implementar tela e fluxo de Login no `Auth.Client`**
   - Criar página `/login` contendo **apenas os campos de login (e-mail) e senha**, sem opções de reset de senha ou criação/registro de usuário na tela de login.
   - Autenticar via `POST /api/auth/login` direcionado ao sistema `AUTH`.
   - Criar `AuthenticationStateProvider` customizado, armazenamento de `AccessToken`/`RefreshToken` e `DelegatingHandler` para injetar `Authorization: Bearer <token>` nas requisições HTTP (com renovação automática via `/api/auth/refresh-token` quando expirado).

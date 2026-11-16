@@ -1,7 +1,6 @@
-﻿using Auth.Domain.ViewModel;
+﻿using System.Net;
 using System.Net.Http.Json;
-using static MudBlazor.CategoryTypes;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using Auth.Domain.ViewModel;
 
 namespace Auth.Client.Service
 {
@@ -11,10 +10,10 @@ namespace Auth.Client.Service
         {
             try
             {
-                var respose = await httpClient.GetAsync(url, ct);
-                if (respose.IsSuccessStatusCode)
+                var response = await httpClient.GetAsync(url, ct);
+                if (response.IsSuccessStatusCode)
                 {
-                    var result = await respose.Content
+                    var result = await response.Content
                         .ReadFromJsonAsync<ResponsePayload<TResponse>>(ct);
                     return new ApiResult<TResponse>
                     {
@@ -22,10 +21,10 @@ namespace Auth.Client.Service
                         Data = result.Data
                     };
                 }
-                var error = await respose.Content.ReadFromJsonAsync<ResponseError<string[]>>();
-                return MontaErro<TResponse>(error);
 
-            } catch (Exception ex)
+                return await LerErroHttpAsync<TResponse>(response, ct);
+            }
+            catch (Exception ex)
             {
                 return MontaErroException<TResponse>(ex.Message);
             }
@@ -49,24 +48,22 @@ namespace Auth.Client.Service
                     };
                 }
 
-                var error = await response.Content
-                    .ReadFromJsonAsync<ResponseError<string[]>>(ct);
-
-                return MontaErro<TResponse>(error);
+                return await LerErroHttpAsync<TResponse>(response, ct);
             }
             catch (Exception ex)
             {
                 return MontaErroException<TResponse>(ex.Message);
             }
         }
+
         public async Task<ApiResult<bool>> DeleteAsync(string url, CancellationToken ct = default)
         {
             try
             {
-                var response = await httpClient.DeleteAsync(url);
-                if(response.IsSuccessStatusCode)
+                var response = await httpClient.DeleteAsync(url, ct);
+                if (response.IsSuccessStatusCode)
                 {
-                    var result = await response.Content.ReadFromJsonAsync<ResponsePayload<bool>>();
+                    var result = await response.Content.ReadFromJsonAsync<ResponsePayload<bool>>(ct);
 
                     if (result.Success)
                         return new ApiResult<bool>
@@ -75,9 +72,10 @@ namespace Auth.Client.Service
                             Data = result.Data
                         };
                 }
-                var erro = await response.Content.ReadFromJsonAsync<ResponseError<string[]>>();
-                return MontaErro<bool>(erro);
-            } catch (Exception ex)
+
+                return await LerErroHttpAsync<bool>(response, ct);
+            }
+            catch (Exception ex)
             {
                 return MontaErroException<bool>(ex.Message);
             }
@@ -100,13 +98,49 @@ namespace Auth.Client.Service
                         Data = result.Data
                     };
                 }
-                var error = await response.Content.ReadFromJsonAsync<ResponseError<string[]>>();
-                return MontaErro<TResponse>(error);
+
+                return await LerErroHttpAsync<TResponse>(response, ct);
             }
             catch (Exception ex)
             {
-                return MontaErroException<TResponse>(ex.Message);   
+                return MontaErroException<TResponse>(ex.Message);
             }
+        }
+
+        private static async Task<ApiResult<TResponse>> LerErroHttpAsync<TResponse>(HttpResponseMessage response, CancellationToken ct)
+        {
+            try
+            {
+                if (response.Content.Headers.ContentLength is null or > 0)
+                {
+                    var error = await response.Content.ReadFromJsonAsync<ResponseError<string[]>>(cancellationToken: ct);
+                    if (error?.Errors is { Length: > 0 })
+                    {
+                        return new ApiResult<TResponse>
+                        {
+                            Success = false,
+                            Errors = error.Errors
+                        };
+                    }
+                }
+            }
+            catch
+            {
+                // Ignora erro de parse caso a resposta HTTP (ex.: 401/403/500) não contenha JSON válido.
+            }
+
+            var defaultMessage = response.StatusCode switch
+            {
+                HttpStatusCode.Unauthorized => "Sessão expirada ou usuário não autenticado.",
+                HttpStatusCode.Forbidden => "Usuário não tem permissão para acessar este recurso.",
+                _ => $"Erro inesperado ({(int)response.StatusCode})."
+            };
+
+            return new ApiResult<TResponse>
+            {
+                Success = false,
+                Errors = [defaultMessage]
+            };
         }
 
         private ApiResult<TResponse> MontaErroException<TResponse>(string ex)
@@ -114,13 +148,6 @@ namespace Auth.Client.Service
             {
                 Success = false,
                 Errors = [ex]
-            };
-
-        private ApiResult<TResponse> MontaErro<TResponse>(ResponseError<string[]> errors)
-            => new ApiResult<TResponse>
-            {
-                Success = errors.Success,
-                Errors = errors?.Errors.Length > 0 ? errors.Errors : ["Erro inesperado"]
             };
     }
 }

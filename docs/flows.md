@@ -111,18 +111,20 @@ sequenceDiagram
 | :--- | :--- | :--- |
 | `GET /api/auth/listar-usuarios` | `[ClaimsAuthorize("AUTH:LER")]` | `AuthQueryService.ObterUsuariosComSistemas()` via **Dapper** (`AspNetUsers` LEFT JOIN `AspNetUserRoles`, `AspNetRoles`, `SystemEntity`). |
 | `GET /api/auth/details-user/{id}` | `[ClaimsAuthorize("AUTH:LER")]` | `AuthQueryService.ObterUsuarioPorId(id)` via **Dapper**. |
-| `DELETE /api/auth/excluir/{id}` | Sem atributo | `AuthService.RemoverUsuarioAsync(id)` -> `AuthRepository.DeleteAsync` *(atualmente stubbed retornando `IdentityResult.Success`)*. |
+| `DELETE /api/auth/excluir/{id}` | `[ClaimsAuthorize("AUTH:LER")]` | `AuthService.RemoverUsuarioAsync(id)` -> `AuthRepository.DeleteAsync` (remove `RefreshTokens` do usuário e exclui via `UserManager.DeleteAsync`). |
 
 ---
 
 ## 7. Fluxo de Gestão de Sistemas, Roles e Claims (`/api/sistema`)
 
-**Controller:** `SistemaController` (protegida por `[Authorize]`).
+**Controller:** `SistemaController` (protegida por `[Authorize]` e `[ClaimsAuthorize("AUTH:LER")]`).
 
 - **Sistemas:**
   - `POST /api/sistema`: valida `SystemEntity` e persiste via `SystemRepository`.
   - `GET /api/sistema`: consulta sistemas + roles + claims via **Dapper** (`SystemQueryService.ObterSistemasComPermissoes()`).
   - `PUT /api/sistema`: atualiza `Name` e `Url` de `SystemEntity`.
+  - `DELETE /api/sistema/{id}`: remove `SystemEntity` caso não possua roles associadas (`SystemService.RemoveSistemaAsync`).
+  - `GET /api/sistema/{id}/usuarios`: consulta usuários e roles vinculados ao sistema via **Dapper** (`SystemQueryService.ObterUsuariosPorSistema`).
 - **Roles (`ApplicationRole`):**
   - `POST /api/sistema/roles`: adiciona role vinculada a `SystemId` (índice único `(SystemId, Name)`).
   - `DELETE /api/sistema/roles/remover/{roleId}`: impede exclusão se a role possuir claims associadas; caso contrário remove via `RoleManager`.
