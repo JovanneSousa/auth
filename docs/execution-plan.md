@@ -52,13 +52,13 @@
   - Autenticar via `POST /api/auth/login` direcionado ao sistema `AUTH`.
   - Criar `AuthenticationStateProvider` customizado, armazenamento de `AccessToken`/`RefreshToken` e `DelegatingHandler` para injetar `Authorization: Bearer <token>` nas requisições HTTP (com renovação automática via `/api/auth/refresh-token` quando expirado).
   - Redirecionar usuários não autenticados para `/login` e tratar respostas `401`/`403` sem corpo JSON em `ApiService.cs`.
-- [ ] **Finalizar Edição e Exclusão de Sistemas em `Systems.razor` e `CreateSystemDialog.razor`**
+- [x] **Finalizar Edição e Exclusão de Sistemas em `Systems.razor` e `CreateSystemDialog.razor`**
   - Corrigir o parâmetro `IsEdiging` (renomear para `IsEditing`) e passá-lo como `true` ao abrir o diálogo de edição em `Systems.razor`.
   - Implementar `CreateSystemDialog.AtualizarSistema` chamando `PUT /api/sistema`.
   - Implementar `Systems.RemoverSistema` chamando `DELETE /api/sistema/{id}` com confirmação.
-- [ ] **Implementar aba "Usuários" em `Systems.razor`**
+- [x] **Implementar aba "Usuários" em `Systems.razor`**
   - Consumir o endpoint de usuários por sistema e permitir vincular usuários existentes a uma role do sistema.
-- [ ] **Corrigir bugs nos Dialogs (`CreateRoleDialog.razor` e `CreateUserDialog.razor`)**
+- [x] **Corrigir bugs nos Dialogs (`CreateRoleDialog.razor` e `CreateUserDialog.razor`)**
   - Remover chamadas duplicadas a `MudDialog.Close(DialogResult.Ok(...))` no `Submit()` que fecham o modal mesmo quando a API retorna erro.
   - Remover o hardcode `if (user.System.Equals("financeiro", ...)) user.System = "fin";` em `CreateUserDialog.razor`.
 

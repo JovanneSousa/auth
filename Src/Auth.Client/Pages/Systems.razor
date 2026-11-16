@@ -142,27 +142,100 @@
                             </MudTabPanel>
 
                             <MudTabPanel Text="Usuários">
-                                @* TODO: Buscar usuários por sistema.Id e listar aqui *@
-                                @* Sugestão de estrutura quando implementar:
-                               foreach (var usuario in _usuariosPorSistema[sistema.Id])
-                               {
-                                   <MudStack Row AlignItems="Center">
-                                       <MudAvatar>@Initials(usuario.Nome)</MudAvatar>
-                                       <div>
-                                           <MudText>@usuario.Nome</MudText>
-                                           <MudText Typo="caption">@usuario.Email</MudText>
-                                       </div>
-                                       <MudChip>@usuario.RoleNome</MudChip>
-                                   </MudStack>
-                               }
-                            *@
-                                <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center"
-                                          Style="padding: 2rem; opacity: 0.5">
-                                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" />
-                                    <MudText Typo="Typo.body2">Usuários serão listados aqui</MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        Implemente a busca de usuários por sistema e vincule a uma role.
-                                    </MudText>
+                                <MudStack Spacing="3">
+                                    @{
+                                        var usuariosSistema = _usuariosPorSistema.GetValueOrDefault(sistema.Id, new());
+                                    }
+
+                                    @if (usuariosSistema.Any())
+                                    {
+                                        @foreach (var usuario in usuariosSistema)
+                                        {
+                                            <MudPaper Outlined="true" Class="pa-3">
+                                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                                        <MudAvatar Color="Color.Secondary" Size="Size.Small">
+                                                            @Initials(usuario.Nome)
+                                                        </MudAvatar>
+                                                        <div>
+                                                            <MudText Typo="Typo.subtitle2">@usuario.Nome</MudText>
+                                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@usuario.Email</MudText>
+                                                        </div>
+                                                    </MudStack>
+                                                    <MudStack Row="true" Spacing="1">
+                                                        @foreach (var perm in usuario.Systems.SelectMany(s => s.Permissoes))
+                                                        {
+                                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                                                                @perm.Name
+                                                            </MudChip>
+                                                        }
+                                                    </MudStack>
+                                                </MudStack>
+                                            </MudPaper>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center"
+                                                  Style="padding: 1.5rem; opacity: 0.6">
+                                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" />
+                                            <MudText Typo="Typo.body2">Nenhum usuário vinculado a este sistema</MudText>
+                                        </MudStack>
+                                    }
+
+                                    <MudDivider />
+
+                                    @if (_sistemaComVinculoAberto == sistema.Id)
+                                    {
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudSelect T="string"
+                                                       @bind-Value="_usuarioSelecionadoId"
+                                                       Label="Usuário"
+                                                       Variant="Variant.Outlined"
+                                                       Margin="Margin.Dense"
+                                                       Style="min-width: 240px;">
+                                                @foreach (var u in _todosUsuarios)
+                                                {
+                                                    <MudSelectItem T="string" Value="@u.Id">
+                                                        @u.Nome (@u.Email)
+                                                    </MudSelectItem>
+                                                }
+                                            </MudSelect>
+
+                                            <MudSelect T="string"
+                                                       @bind-Value="_roleSelecionadaId"
+                                                       Label="Role"
+                                                       Variant="Variant.Outlined"
+                                                       Margin="Margin.Dense"
+                                                       Style="min-width: 180px;">
+                                                @foreach (var r in sistema.Permissoes)
+                                                {
+                                                    <MudSelectItem T="string" Value="@r.Id">
+                                                        @r.Name
+                                                    </MudSelectItem>
+                                                }
+                                            </MudSelect>
+
+                                            <MudIconButton Icon="@Icons.Material.Filled.Check"
+                                                           Size="Size.Small" Color="Color.Success"
+                                                           OnClick="() => ConfirmarVinculoUsuarioAsync(sistema)" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                           Size="Size.Small"
+                                                           OnClick="CancelarVinculoUsuario" />
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudStack Row="true" Justify="Justify.FlexEnd">
+                                            <MudButton Variant="Variant.Outlined"
+                                                       StartIcon="@Icons.Material.Filled.PersonAdd"
+                                                       Size="Size.Small"
+                                                       Disabled="@(!sistema.Permissoes.Any())"
+                                                       OnClick="() => AbrirVinculoUsuarioAsync(sistema.Id)">
+                                                Vincular usuário
+                                            </MudButton>
+                                        </MudStack>
+                                    }
                                 </MudStack>
                             </MudTabPanel>
 
@@ -177,9 +250,15 @@
 @code {
     private List<SystemViewModel> _sistemas;
     private Dictionary<string, List<ApplicationClaimViewModel>> _claimsPorRole = new();
+    private Dictionary<string, List<AuthUserViewModel>> _usuariosPorSistema = new();
+    private List<AuthUserViewModel> _todosUsuarios = new();
 
     private string _roleComInputAberto;
     private string _novaClaimTexto = string.Empty;
+
+    private string _sistemaComVinculoAberto;
+    private string _usuarioSelecionadoId;
+    private string _roleSelecionadaId;
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
@@ -194,8 +273,18 @@
 
         _sistemas = response.Data;
         foreach (var s in _sistemas)
+        {
             foreach (var role in s.Permissoes)
                 _claimsPorRole[role.Id] = role.Claims;
+
+            await CarregarUsuariosDoSistemaAsync(s.Id);
+        }
+    }
+
+    private async Task CarregarUsuariosDoSistemaAsync(string sistemaId)
+    {
+        var res = await _apiService.GetAsync<List<AuthUserViewModel>>($"api/sistema/{sistemaId}/usuarios");
+        _usuariosPorSistema[sistemaId] = res.Success && res.Data is not null ? res.Data : new();
     }
     #region claims
     private void AbrirInputClaim(string roleId)
@@ -255,27 +344,16 @@
 
         if (confirm is not null && confirm == true)
         {
-            try
+            var response = await _apiService.DeleteAsync($"api/sistema/claim/excluir/{roleId}/{claim.ClaimValue}");
+            if (response.Success && _claimsPorRole.TryGetValue(roleId, out var lista))
             {
-                var response = await httpClient.DeleteAsync($"api/sistema/claim/excluir/{roleId}/{claim.ClaimValue}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadFromJsonAsync<ResponsePayload<bool>>();
-
-                    if (result.Data && _claimsPorRole.TryGetValue(roleId, out var lista))
-                    {
-                        Snackbar.Add("Claim Excluida com sucesso!", Severity.Success);
-                        lista.Remove(claim);
-                        StateHasChanged();
-                        return;
-                    }
-                }
-                await ImprimeErrosRetornoHttp(response);
-            } catch (Exception ex)
-            {
-                Snackbar.Add(ex.Message, Severity.Error);
+                Snackbar.Add("Claim Excluida com sucesso!", Severity.Success);
+                lista.Remove(claim);
+                StateHasChanged();
+                return;
             }
+
+            MostrarErros(response.Errors);
         }
     }
 
@@ -287,7 +365,7 @@
     {
         var parameters = new DialogParameters
         {
-            ["sistema"] = sistema
+            ["Sistema"] = sistema
         };
         var dialog = await DialogService.ShowAsync<CreateRoleDialog>("Nova role", parameters);
 
@@ -313,29 +391,17 @@
 
         if (confirm is not null && confirm == true)
         {
-            try
+            var response = await _apiService.DeleteAsync($"api/sistema/roles/remover/{role.Id}");
+            if (response.Success && sistema.Permissoes.Contains(role))
             {
-                var response = await httpClient.DeleteAsync($"api/sistema/roles/remover/{role.Id}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadFromJsonAsync<ResponsePayload<bool>>();
-
-                    if (result.Data && sistema.Permissoes.Contains(role))
-                    {
-                        Snackbar.Add("Perfil excluido com sucesso!", Severity.Success);
-                        sistema.Permissoes.Remove(role);
-                        _claimsPorRole.Remove(role.Id);
-                        StateHasChanged();
-                        return;
-                    }
-                }
-                await ImprimeErrosRetornoHttp(response);
+                Snackbar.Add("Perfil excluido com sucesso!", Severity.Success);
+                sistema.Permissoes.Remove(role);
+                _claimsPorRole.Remove(role.Id);
+                StateHasChanged();
+                return;
             }
-            catch (Exception ex)
-            {
-                Snackbar.Add(ex.Message, Severity.Error);
-            }
+
+            MostrarErros(response.Errors);
         }
     }
     #endregion
@@ -353,13 +419,33 @@
         if (!result.Canceled && result.Data is SystemViewModel novoSistema)
         {
             _sistemas.Add(novoSistema);
+            _usuariosPorSistema[novoSistema.Id] = new();
             StateHasChanged();
         }
     }
 
     private async Task RemoverSistema(SystemViewModel sys)
     {
-        throw new NotImplementedException();
+        bool? confirm = await DialogService.ShowMessageBoxAsync(
+            title: "Confirmar exclusão",
+            markupMessage: (MarkupString)$"Deseja excluir o sistema <b>{sys.Name}</b> permanentemente?",
+            yesText: "Excluir",
+            noText: "Cancelar");
+
+        if (confirm == true)
+        {
+            var response = await _apiService.DeleteAsync($"api/sistema/{sys.Id}");
+            if (response.Success)
+            {
+                Snackbar.Add("Sistema excluído com sucesso!", Severity.Success);
+                _sistemas.Remove(sys);
+                _usuariosPorSistema.Remove(sys.Id);
+                StateHasChanged();
+                return;
+            }
+
+            MostrarErros(response.Errors);
+        }
     }
 
     private async Task OpenSistemaDialog(SystemViewModel sistema)
@@ -368,19 +454,74 @@
         {
             FullWidth = true
         };
+        var copia = new SystemViewModel
+        {
+            Id = sistema.Id,
+            Name = sistema.Name,
+            Url = sistema.Url,
+            Permissoes = sistema.Permissoes
+        };
         var parameters = new DialogParameters
         {
-            ["Model"] = sistema,
+            ["Model"] = copia,
+            ["IsEditing"] = true
         };
-        var dialog = await DialogService.ShowAsync<CreateSystemDialog>( "Editar sistema", parameters, options);
+        var dialog = await DialogService.ShowAsync<CreateSystemDialog>("Editar sistema", parameters, options);
 
         var result = await dialog.Result;
         if (!result.Canceled && result.Data is SystemViewModel s)
         {
-            if (!_sistemas.Any(x => x.Id == s.Id))
-                _sistemas.Add(s);
+            sistema.Name = s.Name;
+            sistema.Url = s.Url;
             StateHasChanged();
         }
+    }
+
+    private async Task AbrirVinculoUsuarioAsync(string sistemaId)
+    {
+        if (!_todosUsuarios.Any())
+        {
+            var res = await _apiService.GetAsync<List<AuthUserViewModel>>("api/auth/listar-usuarios");
+            if (res.Success && res.Data is not null)
+                _todosUsuarios = res.Data;
+            else
+                MostrarErros(res.Errors);
+        }
+
+        _sistemaComVinculoAberto = sistemaId;
+        _usuarioSelecionadoId = string.Empty;
+        _roleSelecionadaId = string.Empty;
+    }
+
+    private void CancelarVinculoUsuario()
+    {
+        _sistemaComVinculoAberto = null;
+        _usuarioSelecionadoId = string.Empty;
+        _roleSelecionadaId = string.Empty;
+    }
+
+    private async Task ConfirmarVinculoUsuarioAsync(SystemViewModel sistema)
+    {
+        if (string.IsNullOrWhiteSpace(_usuarioSelecionadoId) || string.IsNullOrWhiteSpace(_roleSelecionadaId))
+        {
+            Snackbar.Add("Selecione o usuário e a role para vincular.", Severity.Warning);
+            return;
+        }
+
+        var response = await _apiService.PostAsync<object, bool>(
+            $"api/sistema/{sistema.Id}/usuarios/{_usuarioSelecionadoId}/roles/{_roleSelecionadaId}",
+            new { });
+
+        if (!response.Success)
+        {
+            MostrarErros(response.Errors);
+            return;
+        }
+
+        Snackbar.Add("Usuário vinculado ao sistema com sucesso!", Severity.Success);
+        await CarregarUsuariosDoSistemaAsync(sistema.Id);
+        CancelarVinculoUsuario();
+        StateHasChanged();
     }
     #endregion
 
