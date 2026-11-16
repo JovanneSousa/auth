@@ -5,5 +5,6 @@ namespace Auth.Application.Queries.Interfaces
     public interface ISystemQueryService
     {
         Task<List<SystemViewModel>> ObterSistemasComPermissoes();
+        Task<List<AuthUserViewModel>> ObterUsuariosPorSistema(string sistemaId);
     }
 }

@@ -53,8 +53,17 @@ namespace Auth.Infra.Repositories
         public async Task<ApplicationUser?> ObterUsuarioPorIdAsync(string id) =>
             await ExecuteAsync(async () => await _userManager.FindByIdAsync(id));
         public async Task<IdentityResult> DeleteAsync(ApplicationUser usuario) =>
-            IdentityResult.Success;
-            // await ExecuteAsync(async () => await _userManager.DeleteAsync(usuario));
+            await ExecuteAsync(async () =>
+            {
+                if (!string.IsNullOrWhiteSpace(usuario.UserName))
+                {
+                    _context.RefreshTokens.RemoveRange(
+                        _context.RefreshTokens.Where(rt => rt.UserName == usuario.UserName));
+                    await _context.SaveChangesAsync();
+                }
+
+                return await _userManager.DeleteAsync(usuario);
+            });
         public async Task<IEnumerable<ApplicationUser>> ObterTodosAuthUserAsync() =>
             await ExecuteAsync(async () => await _userManager.Users.AsNoTracking().ToListAsync());
 

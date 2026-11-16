@@ -27,11 +27,20 @@ namespace Auth.Infra.Repositories
                 });
 
         public async Task<bool> AtualizarAsync(SystemEntity system)
-        {
-            _context.Update(system);
-            await _context.SaveChangesAsync();
-            return true;
-        }
+            => await ExecuteAsync(async () =>
+                {
+                    _context.Update(system);
+                    await _context.SaveChangesAsync();
+                    return true;
+                });
+
+        public async Task<bool> RemoverAsync(SystemEntity system)
+            => await ExecuteAsync(async () =>
+                {
+                    _context.SystemEntity.Remove(system);
+                    await _context.SaveChangesAsync();
+                    return true;
+                });
 
         public async Task<IEnumerable<SystemEntity>> ObterTodosSistemasAsync()
             => await ExecuteAsync(async () => await _context.SystemEntity.ToListAsync());

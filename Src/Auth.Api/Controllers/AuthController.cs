@@ -40,6 +40,7 @@ namespace fin_api.Controllers
         /// <param name="id">Identificador único do usuário.</param>
         /// <returns>Booleano indicando sucesso da operação.</returns>
         [HttpDelete("excluir/{id}")]
+        [ClaimsAuthorize("AUTH:LER")]
         public async Task<ActionResult<ResponsePayload<bool>>> Excluir(string id) =>
             CustomResponse(await _authService.RemoverUsuarioAsync(id));
 

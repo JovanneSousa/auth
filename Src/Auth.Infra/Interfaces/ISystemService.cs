@@ -19,9 +19,14 @@ namespace Auth.Infra.Interfaces
         Task<bool> AtualizaSistemaAsync(SystemViewModel sistema);
 
         /// <summary>
-        /// Remove um sistema da base (Não implementado).
+        /// Remove um sistema da base de dados, desde que não possua perfis vinculados.
         /// </summary>
         Task<bool> RemoveSistemaAsync(string sistemaId);
+
+        /// <summary>
+        /// Retorna os usuários vinculados a um sistema específico com seus perfis.
+        /// </summary>
+        Task<List<AuthUserViewModel>> ObterUsuariosPorSistemaAsync(string sistemaId);
 
         /// <summary>
         /// Retorna todos os sistemas com suas respectivas permissões.

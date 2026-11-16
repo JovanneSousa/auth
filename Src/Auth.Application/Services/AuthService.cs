@@ -65,10 +65,17 @@ public class AuthService : BaseService, IAuthService
 
     public async Task<string?> AdicionarUsuarioAsync(RegisterUserViewModel registerUser)
     {
+        var roleEntity = await ExecuteAsync(async () =>
+            await _authRepository.ObterRolePorSistemaENomeAsync(registerUser.System, registerUser.Profile));
+
+        if (roleEntity is null)
+            return RetornaErroProcessamento<string?>("Perfil não encontrado para o sistema informado!");
+
         var usuarioExistente = 
             await _authRepository.ObterUsuarioPorEmailAsync(registerUser.Email);
 
         ApplicationUser user;
+        var novoUsuarioCriado = false;
 
         if (usuarioExistente == null)
         {
@@ -81,6 +88,7 @@ public class AuthService : BaseService, IAuthService
             };
             var created = await CriaUserIdentity(user, registerUser.Password, registerUser);
             if (!created) return default;
+            novoUsuarioCriado = true;
         } else
         {
             if (string.IsNullOrWhiteSpace(usuarioExistente.UserName))
@@ -92,19 +100,42 @@ public class AuthService : BaseService, IAuthService
             if (!executaLogin.Succeeded)
                 return RetornaErroProcessamento<string?>("A senha deve ser a mesma do outro sistema para a liberação de permissão!");
 
+            var jaPossuiRole = await ExecuteAsync(async () =>
+                await _authRepository.UsuarioPossuiRolePorIdAsync(usuarioExistente.Id, roleEntity.Id));
+
+            if (jaPossuiRole)
+                return RetornaErroProcessamento<string?>("O usuário ja tem esse perfil!");
+
             user = usuarioExistente;
         }
 
-        var usuarioRegistrado = await RegistraUsuario(registerUser);
+        if (!EhSistemaAuthLocal(registerUser.System))
+        {
+            var usuarioRegistrado = await RegistraUsuario(registerUser);
 
-        if (!usuarioRegistrado.ValidationResult.IsValid || usuarioRegistrado == null)
-            return default;
+            if (usuarioRegistrado == null || !usuarioRegistrado.ValidationResult.IsValid)
+            {
+                if (novoUsuarioCriado)
+                    await _authRepository.DeleteAsync(user);
+
+                return default;
+            }
+        }
 
         if (!await SalvaUserRoles(user, registerUser.Profile, registerUser.System))
+        {
+            if (novoUsuarioCriado)
+                await _authRepository.DeleteAsync(user);
+
             return default;
+        }
 
         return user.Id;
     }
+
+    private static bool EhSistemaAuthLocal(string system) =>
+        !string.IsNullOrWhiteSpace(system) &&
+        system.Trim().Equals("AUTH", StringComparison.OrdinalIgnoreCase);
     
 
     public async Task<LoginResponseViewModel?> LogarUsuarioAsync(

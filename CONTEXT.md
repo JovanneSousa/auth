@@ -69,10 +69,10 @@ Quando iniciar uma tarefa neste repositório, leia apenas os arquivos relevantes
   1. `forgot-password`: gera token de reset no Identity, monta `{_frontUrl}/auth?email=...&token=...` e publica `EmailIntegrationEvent` no RabbitMQ (`_messageBus.PublishAsync`). Sempre retorna `true` se usuário não existir ou e-mail não confirmado.
   2. `reset-pass`: aplica `ResetarSenha` com token e nova senha.
 - **Gestão de Usuários (`GET /api/auth/listar-usuarios`, `details-user/{id}`, `DELETE /api/auth/excluir/{id}`):**
-  1. Listagem e detalhes protegidos por `[ClaimsAuthorize("AUTH:LER")]`, executados via Dapper (`AuthQueryService`).
+  1. Listagem, detalhes e exclusão protegidos por `[ClaimsAuthorize("AUTH:LER")]`.
 - **Gestão de Sistemas, Roles e Claims (`/api/sistema`):**
-  1. Controller protegida por `[Authorize]`.
-  2. CRUD parcial de `SystemEntity`, adição/remoção de `ApplicationRole` (bloqueia remoção se houver claims associadas) e adição/remoção de `Claim("permission", value)`.
+  1. Controller protegida por `[Authorize]` + `[ClaimsAuthorize("AUTH:LER")]`.
+  2. CRUD completo de `SystemEntity` (`GET`, `POST`, `PUT`, `DELETE /{id}` bloqueando se houver roles), listagem de usuários por sistema (`GET /api/sistema/{id}/usuarios`), adição/remoção de `ApplicationRole` (bloqueia remoção se houver claims associadas) e adição/remoção de `Claim("permission", value)`.
 
 ---
 
@@ -81,9 +81,7 @@ Quando iniciar uma tarefa neste repositório, leia apenas os arquivos relevantes
 Ao gerar código ou diagnosticar bugs, considere os seguintes fatos reais do código atual:
 
 - **Notification Pattern:** Serviços **não** lançam exceções de negócio para o controller; notificam via `_notificador.Handle(...)` (ou `RetornaErroProcessamento<T>(...)` / `ExecuteAsync(...)` em `BaseService`) e retornam `default`/`false`.
-- **Exclusão de usuário desativada (`AuthRepository.DeleteAsync`):** Atualmente retorna `IdentityResult.Success` com a chamada `_userManager.DeleteAsync(usuario)` comentada (`Src/Auth.Infra/Repositories/AuthRepository.cs:55-57`).
-- **Remoção de sistema não implementada:** `SystemService.RemoveSistemaAsync` lança `NotImplementedException`.
-- **Hard-fail no Startup:** Sem `ConnectionStrings:DefaultConnection` e `FrontEndSettings:AllowedApps` (array não vazio), a API falha ao iniciar.
+- **Hard-fail no Startup:** Sem `ConnectionStrings:DefaultConnection`, `FrontEndSettings:AllowedApps` (array não vazio) e `JwtSettings:AutenticacaoJwksUrl` (com protocolo `http://` ou `https://`), a API falha ao iniciar.
 
 ---
 

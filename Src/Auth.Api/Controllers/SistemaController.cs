@@ -1,5 +1,6 @@
 ﻿using Auth.Domain.ViewModel;
 using Auth.Infra.Interfaces;
+using Jovanne.Jwks.Client.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +11,7 @@ namespace Auth.Api.Controllers
     /// </summary>
     [Route("/api/sistema")]
     [Authorize]
+    [ClaimsAuthorize("AUTH:LER")]
     public class SistemaController : ApiController
     {
         private readonly ISystemService _systemService;
@@ -49,6 +51,24 @@ namespace Auth.Api.Controllers
         [HttpPut]
         public async Task<ActionResult<bool>> AtualizaSistema(SystemViewModel sistema)
             => CustomResponse(await _systemService.AtualizaSistemaAsync(sistema));
+
+        /// <summary>
+        /// Remove um sistema cadastrado, validando se existem perfis vinculados.
+        /// </summary>
+        /// <param name="id">Identificador único do sistema.</param>
+        /// <returns>Booleano indicando sucesso.</returns>
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<bool>> RemoverSistema(string id)
+            => CustomResponse(await _systemService.RemoveSistemaAsync(id));
+
+        /// <summary>
+        /// Obtém os usuários vinculados a um sistema específico com seus respectivos perfis.
+        /// </summary>
+        /// <param name="id">Identificador único do sistema.</param>
+        /// <returns>Lista de usuários vinculados ao sistema.</returns>
+        [HttpGet("{id}/usuarios")]
+        public async Task<ActionResult<IEnumerable<AuthUserViewModel>>> ObterUsuariosPorSistema(string id)
+            => CustomResponse(await _systemService.ObterUsuariosPorSistemaAsync(id));
 
         // Roles
 

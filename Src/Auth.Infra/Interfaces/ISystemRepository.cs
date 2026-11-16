@@ -20,6 +20,11 @@ namespace Auth.Infra.Interfaces
         Task<bool> AtualizarAsync(SystemEntity system);
 
         /// <summary>
+        /// Remove um sistema da base de dados.
+        /// </summary>
+        Task<bool> RemoverAsync(SystemEntity system);
+
+        /// <summary>
         /// Lista todos os sistemas cadastrados no ecossistema.
         /// </summary>
         Task<IEnumerable<SystemEntity>> ObterTodosSistemasAsync();
