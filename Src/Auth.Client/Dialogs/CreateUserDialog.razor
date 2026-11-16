@@ -1,7 +1,8 @@
 ﻿@using MudBlazor
 
 @inject IDialogService DialogService;
-@inject HttpClient httpClient;
+@inject IApiService _apiService;
+@inject ISnackbar Snackbar;
 
 <MudDialog>
     <DialogContent>
@@ -81,26 +82,21 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        var response = await _apiService.GetAsync<List<SystemViewModel>>("api/sistema");
+        if (response.Success && response.Data is not null)
         {
-            ResponsePayload<IEnumerable<SystemViewModel>> response =
-                await httpClient.GetFromJsonAsync<ResponsePayload<IEnumerable<SystemViewModel>>>("api/sistema");
-            if (response.Data is not null)
-            {
-                Sistemas = response.Data.ToList();
-            }
+            Sistemas = response.Data;
+            return;
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-        }
+
+        foreach (var erro in response.Errors ?? [])
+            Snackbar.Add(erro, Severity.Error);
     }
 
 
     private async Task Submit()
     {
         await SalvarUsuario(Model);
-        MudDialog.Close(DialogResult.Ok(Model));
     }
 
     private void Cancel()
@@ -110,26 +106,38 @@
 
     private async Task SalvarUsuario(RegisterUserViewModel user, CancellationToken ct = default)
     {
-        if(user.System.Equals("financeiro", StringComparison.OrdinalIgnoreCase))
+        var response = await _apiService.PostAsync<RegisterUserViewModel, string>("api/auth/registrar", user, ct);
+        if (response.Success)
         {
-            user.System = "fin";
-        }
-        var result = await httpClient.PostAsJsonAsync<RegisterUserViewModel>("/api/auth/registrar", user, ct);
-        if (result.IsSuccessStatusCode)
-        {
-            var response = await result.Content
-                .ReadFromJsonAsync<ResponsePayload<string>>(cancellationToken: ct);
-
+            var sistemaSelecionado = Sistemas.FirstOrDefault(s => s.Name == user.System);
             var novoUsuario = new AuthUserViewModel
-                {
-                    Email = user.Email,
-                    Id = response.Data,
-                    Nome = user.Nome,
-                    Systems = new()
-                };
+            {
+                Email = user.Email,
+                Id = response.Data,
+                Nome = user.Nome,
+                Systems = sistemaSelecionado is not null
+                    ? new List<SystemViewModel>
+                    {
+                        new SystemViewModel
+                        {
+                            Id = sistemaSelecionado.Id,
+                            Name = sistemaSelecionado.Name,
+                            Url = sistemaSelecionado.Url,
+                            Permissoes = sistemaSelecionado.Permissoes
+                                .Where(p => p.Name == user.Profile)
+                                .ToList()
+                        }
+                    }
+                    : new()
+            };
 
+            Snackbar.Add("Usuário cadastrado com sucesso!", Severity.Success);
             MudDialog.Close(DialogResult.Ok(novoUsuario));
+            return;
         }
+
+        foreach (var erro in response.Errors ?? ["Falha ao registrar usuário."])
+            Snackbar.Add(erro, Severity.Error);
     }
     private Task OnSistemaChanged(string sistema)
     {

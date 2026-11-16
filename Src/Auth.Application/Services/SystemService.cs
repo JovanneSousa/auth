@@ -89,6 +89,30 @@ namespace Auth.Application.Services
         public async Task<List<AuthUserViewModel>> ObterUsuariosPorSistemaAsync(string sistemaId) =>
             await _systemQuery.ObterUsuariosPorSistema(sistemaId);
 
+        public async Task<bool> VincularUsuarioRoleAsync(string sistemaId, string userId, string roleId)
+        {
+            if (string.IsNullOrWhiteSpace(sistemaId) || string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(roleId))
+                return RetornaErroProcessamento<bool>("Sistema, usuário e perfil são obrigatórios!");
+
+            var usuario = await ExecuteAsync(async () => await _authRepository.ObterUsuarioPorIdAsync(userId));
+            if (usuario is null)
+                return RetornaErroProcessamento<bool>("Usuário não encontrado!");
+
+            var role = await ExecuteAsync(async () => await _authRepository.ObterRolePorId(roleId));
+            if (role is null || !role.SystemId.Equals(sistemaId, StringComparison.OrdinalIgnoreCase))
+                return RetornaErroProcessamento<bool>("Perfil não encontrado para este sistema!");
+
+            var jaPossui = await ExecuteAsync(async () => await _authRepository.UsuarioPossuiRolePorIdAsync(userId, roleId));
+            if (jaPossui)
+                return RetornaErroProcessamento<bool>("O usuário já possui este perfil no sistema!");
+
+            var result = await ExecuteAsync(async () => await _authRepository.SalvaUserRolePorIdAsync(userId, roleId));
+            if (!result)
+                return RetornaErroProcessamento<bool>("Falha ao vincular usuário ao perfil!");
+
+            return true;
+        }
+
 
         // Roles
         public async Task<bool> AdicionaRole(ApplicationRoleViewModel roleVm)

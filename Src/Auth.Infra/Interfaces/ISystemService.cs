@@ -29,6 +29,11 @@ namespace Auth.Infra.Interfaces
         Task<List<AuthUserViewModel>> ObterUsuariosPorSistemaAsync(string sistemaId);
 
         /// <summary>
+        /// Vincula um usuário existente a um perfil (Role) de um sistema.
+        /// </summary>
+        Task<bool> VincularUsuarioRoleAsync(string sistemaId, string userId, string roleId);
+
+        /// <summary>
         /// Retorna todos os sistemas com suas respectivas permissões.
         /// </summary>
         Task<List<SystemViewModel>> ObterTodosSistemasAsync();

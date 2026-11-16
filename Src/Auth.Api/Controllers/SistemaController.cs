@@ -70,6 +70,13 @@ namespace Auth.Api.Controllers
         public async Task<ActionResult<IEnumerable<AuthUserViewModel>>> ObterUsuariosPorSistema(string id)
             => CustomResponse(await _systemService.ObterUsuariosPorSistemaAsync(id));
 
+        /// <summary>
+        /// Vincula um usuário existente a um perfil (Role) do sistema.
+        /// </summary>
+        [HttpPost("{sistemaId}/usuarios/{userId}/roles/{roleId}")]
+        public async Task<ActionResult<bool>> VincularUsuarioRole(string sistemaId, string userId, string roleId)
+            => CustomResponse(await _systemService.VincularUsuarioRoleAsync(sistemaId, userId, roleId));
+
         // Roles
 
         /// <summary>
