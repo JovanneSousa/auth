@@ -51,23 +51,11 @@ namespace Auth.Application.Queries
         {
             return await ExecuteQueryAsync(async connection =>
             {
-                var lookup = new Dictionary<string, AuthUserViewModel>();
+                var lookup = new Dictionary<string, AuthUserViewModel>(StringComparer.Ordinal);
 
                 await connection.QueryAsync<AuthUserDapperDTO, ApplicationRoleDapperDTO, SystemDapperDTO, AuthUserViewModel>(
                     ObterSqlUsuarioPorId(),
-                    (usuario, role, sistema) =>
-                    {
-                        if (!lookup.TryGetValue(usuario.UserId, out var user))
-                        {
-                            user = usuario.ToViewModel();
-                            lookup.Add(user.Id, user);
-                        }
-
-                        if (sistema != null && !string.IsNullOrEmpty(sistema.SystemId))
-                            user.Systems.Add(sistema.ToViewModel(role));
-
-                        return user;
-                    },
+                    (usuario, role, sistema) => MapearUsuarioSistemaRole(usuario, role, sistema, lookup),
                     new { UserId = id },
                     splitOn: "RoleId, SystemId");
 
@@ -79,29 +67,45 @@ namespace Auth.Application.Queries
         {
             var result = await ExecuteQueryAsync(async connection =>
             {
-                var lookup = new Dictionary<string, AuthUserViewModel>();
+                var lookup = new Dictionary<string, AuthUserViewModel>(StringComparer.Ordinal);
 
                 await connection.QueryAsync<AuthUserDapperDTO, ApplicationRoleDapperDTO, SystemDapperDTO, AuthUserViewModel>(
                     ObterSqlUsuarios(),
-                    (usuario, role, sistema) =>
-                    {
-                        if (!lookup.TryGetValue(usuario.UserId, out var user))
-                        {
-                            user = usuario.ToViewModel();
-                            lookup.Add(user.Id, user);
-                        }
-
-                        if (sistema != null && !string.IsNullOrEmpty(sistema.SystemId))
-                            user.Systems.Add(sistema.ToViewModel(role));
-
-                        return user;
-                    },
+                    (usuario, role, sistema) => MapearUsuarioSistemaRole(usuario, role, sistema, lookup),
                     splitOn: "RoleId, SystemId");
 
                 return lookup.Values.ToList();
             });
 
             return result ?? new();
+        }
+
+        private static AuthUserViewModel MapearUsuarioSistemaRole(
+            AuthUserDapperDTO usuario,
+            ApplicationRoleDapperDTO role,
+            SystemDapperDTO sistema,
+            Dictionary<string, AuthUserViewModel> lookup)
+        {
+            if (!lookup.TryGetValue(usuario.UserId, out var user))
+            {
+                user = usuario.ToViewModel();
+                lookup.Add(user.Id, user);
+            }
+
+            if (sistema != null && !string.IsNullOrEmpty(sistema.SystemId))
+            {
+                var sysVm = user.Systems.FirstOrDefault(s => s.Id == sistema.SystemId);
+                if (sysVm is null)
+                {
+                    user.Systems.Add(sistema.ToViewModel(role));
+                }
+                else if (role != null && role.EhValido() && !sysVm.Permissoes.Any(p => p.Id == role.RoleId))
+                {
+                    sysVm.Permissoes.Add(role.ToViewModel());
+                }
+            }
+
+            return user;
         }
     }
 }

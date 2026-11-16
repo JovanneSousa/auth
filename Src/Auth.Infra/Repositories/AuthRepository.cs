@@ -32,9 +32,9 @@ namespace Auth.Infra.Repositories
         public async Task<bool> updateRefreshToken(RefreshToken newRefreshToken)
             => await ExecuteAsync(async () =>
             {
-                _context.RefreshTokens.RemoveRange(
-                    _context.RefreshTokens.Where(rt => rt.UserName == newRefreshToken.UserName)
-                    );
+                await _context.RefreshTokens
+                    .Where(rt => rt.UserName == newRefreshToken.UserName)
+                    .ExecuteDeleteAsync();
                 await _context.RefreshTokens.AddAsync(newRefreshToken);
                 await _context.SaveChangesAsync();
                 return true;
@@ -57,9 +57,9 @@ namespace Auth.Infra.Repositories
             {
                 if (!string.IsNullOrWhiteSpace(usuario.UserName))
                 {
-                    _context.RefreshTokens.RemoveRange(
-                        _context.RefreshTokens.Where(rt => rt.UserName == usuario.UserName));
-                    await _context.SaveChangesAsync();
+                    await _context.RefreshTokens
+                        .Where(rt => rt.UserName == usuario.UserName)
+                        .ExecuteDeleteAsync();
                 }
 
                 return await _userManager.DeleteAsync(usuario);
@@ -77,18 +77,16 @@ namespace Auth.Infra.Repositories
         public async Task<IList<Claim>> ObterClaimsPorUsuarioAsync(ApplicationUser user) =>
             await ExecuteAsync(async () =>
             {
-                return await _context.RoleClaims
-                    .Where(rc =>
-                            _context.UserRoles
-                                .Where(ur => ur.UserId == user.Id)
-                                .Select(ur => ur.RoleId)
-                                .Contains(rc.RoleId))
-                    .Select(c => new Claim(c.ClaimType!, c.ClaimValue!))
+                return await (from rc in _context.RoleClaims.AsNoTracking()
+                              join ur in _context.UserRoles.AsNoTracking() on rc.RoleId equals ur.RoleId
+                              where ur.UserId == user.Id
+                              select new Claim(rc.ClaimType!, rc.ClaimValue!))
                     .ToListAsync();
             });
         public async Task<IList<ApplicationRole>> ObterClaimsPorRoleIdsAsync(List<string> rolesIds) =>
             await ExecuteAsync(async () => 
                 await _context.Roles
+                    .AsNoTracking()
                     .Where(r => rolesIds.Contains(r.Id))
                     .ToListAsync());
 
@@ -102,11 +100,13 @@ namespace Auth.Infra.Repositories
         public async Task<IList<ApplicationRole>> ObterRolesPorSistemIdAsync(string systemId) =>
             await ExecuteAsync(async () => 
                 await _context.Roles
+                    .AsNoTracking()
                     .Where(r => r.SystemId == systemId)
                     .ToListAsync());
         public async Task<IEnumerable<ApplicationRole>> ObterSystemIdDasRolesPorUsuarioAsync(IEnumerable<string> nomes)
             => await ExecuteAsync(async () =>
                 await _context.Roles
+                    .AsNoTracking()
                     .Where(c => nomes.Contains(c.Name))
                     .ToListAsync());
         public async Task<IdentityResult> SalvaRoleAsync(ApplicationUser user, string role) =>
@@ -121,6 +121,7 @@ namespace Auth.Infra.Repositories
                 var normalizedSystem = system.Trim().ToUpperInvariant();
 
                 var rolesWithName = await _context.Roles
+                    .AsNoTracking()
                     .Include(r => r.System)
                     .Where(r => r.NormalizedName == normalizedRole || (r.Name != null && r.Name.ToUpper() == normalizedRole))
                     .ToListAsync();

@@ -134,7 +134,7 @@ public class AuthServiceTests
         var user = new ApplicationUser { Id = "u1", UserName = "user@teste.com", Email = "user@teste.com", Nome = "User" };
         _authRepositoryMock.Setup(x => x.ObterUsuarioPorEmailAsync(user.Email)).ReturnsAsync(user);
         _signInManagerMock
-            .Setup(x => x.PasswordSignInAsync(user.UserName, "SenhaErrada", false, true))
+            .Setup(x => x.CheckPasswordSignInAsync(user, "SenhaErrada", true))
             .ReturnsAsync(SignInResult.LockedOut);
 
         var result = await _sut.LogarUsuarioAsync(new LoginUserViewModel
@@ -154,7 +154,7 @@ public class AuthServiceTests
         var user = new ApplicationUser { Id = "u1", UserName = "user@teste.com", Email = "user@teste.com", Nome = "User" };
         _authRepositoryMock.Setup(x => x.ObterUsuarioPorEmailAsync(user.Email)).ReturnsAsync(user);
         _signInManagerMock
-            .Setup(x => x.PasswordSignInAsync(user.UserName, "Senha123!", false, true))
+            .Setup(x => x.CheckPasswordSignInAsync(user, "Senha123!", true))
             .ReturnsAsync(SignInResult.Success);
         _authRepositoryMock.Setup(x => x.ObterClaimsPorUsuarioAsync(user)).ReturnsAsync([]);
         _authRepositoryMock.Setup(x => x.SistemaExisteAsync("INEXISTENTE")).ReturnsAsync(false);
@@ -176,7 +176,7 @@ public class AuthServiceTests
         var user = new ApplicationUser { Id = "u1", UserName = "user@teste.com", Email = "user@teste.com", Nome = "User" };
         _authRepositoryMock.Setup(x => x.ObterUsuarioPorEmailAsync(user.Email)).ReturnsAsync(user);
         _signInManagerMock
-            .Setup(x => x.PasswordSignInAsync(user.UserName, "Senha123!", false, true))
+            .Setup(x => x.CheckPasswordSignInAsync(user, "Senha123!", true))
             .ReturnsAsync(SignInResult.Success);
         _authRepositoryMock.Setup(x => x.SistemaExisteAsync("FIN")).ReturnsAsync(true);
         _authRepositoryMock
@@ -195,14 +195,13 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LogarUsuarioAsync_CredenciaisEPermissaoValidas_DeveGerarJwtERefreshToken()
+    public async Task LogarUsuarioAsync_CredenciaisEPermissaoValidas_DeveGerarJwtERefreshTokenSemConsultarSistemaNoBanco()
     {
         var user = new ApplicationUser { Id = "u1", UserName = "admin@teste.com", Email = "admin@teste.com", Nome = "Admin" };
         _authRepositoryMock.Setup(x => x.ObterUsuarioPorEmailAsync(user.Email)).ReturnsAsync(user);
         _signInManagerMock
-            .Setup(x => x.PasswordSignInAsync(user.UserName, "Senha123!", false, true))
+            .Setup(x => x.CheckPasswordSignInAsync(user, "Senha123!", true))
             .ReturnsAsync(SignInResult.Success);
-        _authRepositoryMock.Setup(x => x.SistemaExisteAsync("AUTH")).ReturnsAsync(true);
         _authRepositoryMock
             .Setup(x => x.ObterClaimsPorUsuarioAsync(user))
             .ReturnsAsync([new Claim("permission", "AUTH:LER")]);
@@ -222,6 +221,7 @@ public class AuthServiceTests
         Assert.False(string.IsNullOrWhiteSpace(result.RefreshToken));
         Assert.Equal("u1", result.UserToken.Id);
         Assert.False(_notificador.TemNotificacao());
+        _authRepositoryMock.Verify(x => x.SistemaExisteAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -379,7 +379,7 @@ public class AuthServiceTests
         _authRepositoryMock.Setup(x => x.ObterRolePorSistemaENomeAsync("FIN", "Admin")).ReturnsAsync(role);
         _authRepositoryMock.Setup(x => x.ObterUsuarioPorEmailAsync("u@teste.com")).ReturnsAsync(existing);
         _signInManagerMock
-            .Setup(x => x.PasswordSignInAsync("u@teste.com", "SenhaErrada", false, true))
+            .Setup(x => x.CheckPasswordSignInAsync(existing, "SenhaErrada", true))
             .ReturnsAsync(SignInResult.Failed);
 
         var userId = await _sut.AdicionarUsuarioAsync(new RegisterUserViewModel
@@ -405,7 +405,7 @@ public class AuthServiceTests
         _authRepositoryMock.Setup(x => x.ObterRolePorSistemaENomeAsync("FIN", "Admin")).ReturnsAsync(role);
         _authRepositoryMock.Setup(x => x.ObterUsuarioPorEmailAsync("u@teste.com")).ReturnsAsync(existing);
         _signInManagerMock
-            .Setup(x => x.PasswordSignInAsync("u@teste.com", "Senha123!", false, true))
+            .Setup(x => x.CheckPasswordSignInAsync(existing, "Senha123!", true))
             .ReturnsAsync(SignInResult.Success);
         _authRepositoryMock.Setup(x => x.UsuarioPossuiRolePorIdAsync("u1", "role-fin")).ReturnsAsync(true);
 

@@ -21,7 +21,7 @@ namespace Auth.Application.Queries
                 c.""ClaimValue""
             FROM ""SystemEntity"" s
             LEFT JOIN ""AspNetRoles"" r ON r.""SystemId"" = s.""Id""
-            LEFT JOIN ""AspNetRoleClaims"" c ON c.""RoleId"" = r.""Id""
+            LEFT JOIN ""AspNetRoleClaims"" c ON c.""RoleId"" = r.""Id"" AND c.""ClaimType"" = 'permission'
         ";
 
         private static string ObterSqlUsuariosPorSistema() => @"
@@ -51,11 +51,12 @@ namespace Auth.Application.Queries
         {
             var result = await ExecuteQueryAsync(async connection =>
             {
-                var lookup = new Dictionary<string, SystemViewModel>();
+                var lookup = new Dictionary<string, SystemViewModel>(StringComparer.Ordinal);
+                var roleLookup = new Dictionary<string, ApplicationRoleViewModel>(StringComparer.Ordinal);
 
                 await connection.QueryAsync<SystemDapperDTO, ApplicationRoleDapperDTO, string, SystemViewModel>(
                     ObterSqlSistemasComPermissao(),
-                    (system, roleDto, claim) => MontaSistema(system, roleDto, claim, lookup),
+                    (system, roleDto, claim) => MontaSistema(system, roleDto, claim, lookup, roleLookup),
                     splitOn: "RoleId,ClaimValue"
                 );
 
@@ -69,7 +70,7 @@ namespace Auth.Application.Queries
         {
             var result = await ExecuteQueryAsync(async connection =>
             {
-                var lookup = new Dictionary<string, AuthUserViewModel>();
+                var lookup = new Dictionary<string, AuthUserViewModel>(StringComparer.Ordinal);
 
                 await connection.QueryAsync<AuthUserDapperDTO, ApplicationRoleDapperDTO, SystemDapperDTO, AuthUserViewModel>(
                     ObterSqlUsuariosPorSistema(),
@@ -105,11 +106,12 @@ namespace Auth.Application.Queries
             return result ?? new();
         }
 
-        private SystemViewModel MontaSistema(
+        private static SystemViewModel MontaSistema(
             SystemDapperDTO system,
             ApplicationRoleDapperDTO roleDto, 
             string claim,
-            Dictionary<string, SystemViewModel> lookup
+            Dictionary<string, SystemViewModel> lookup,
+            Dictionary<string, ApplicationRoleViewModel> roleLookup
             )
         {
             if (!lookup.TryGetValue(system.SystemId, out var sys))
@@ -120,12 +122,10 @@ namespace Auth.Application.Queries
 
             if (roleDto.EhValido())
             {
-                var role = sys.Permissoes
-                    .FirstOrDefault(r => r.Id == roleDto.RoleId);
-
-                if (role is null)
+                if (!roleLookup.TryGetValue(roleDto.RoleId, out var role))
                 {
                     role = roleDto.ToViewModel();
+                    roleLookup.Add(role.Id, role);
                     sys.Permissoes.Add(role);
                 }
 
