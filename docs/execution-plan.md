@@ -66,9 +66,9 @@
 
 ## Fase 4 — Qualidade e Testes (`Tests/Auth.UnitTests`)
 
-- [ ] **Configurar framework de testes**
+- [x] **Configurar framework de testes**
   - Adicionar `xUnit` e `Moq` (ou `NSubstitute`) ao `Auth.UnitTests.csproj` e remover o placeholder `Class1.cs`.
-- [ ] **Cobrir cenários críticos com testes unitários**
+- [x] **Cobrir cenários críticos com testes unitários**
   - `AuthService.LogarUsuarioAsync` (validação de credenciais, lockout, regra de permissão por sistema).
   - `AuthService.RefreshToken` (token inválido, expirado, válido e rotação).
   - `AuthService.AdicionarUsuarioAsync` (novo usuário, vínculo em segundo sistema, falha de integração RabbitMQ).

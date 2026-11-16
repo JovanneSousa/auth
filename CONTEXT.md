@@ -25,7 +25,7 @@ Serviço central de **Identidade e Autenticação (IdP)** para um ecossistema di
 | `Src/Auth.Domain` | Entidades, ViewModels, Models, Extensions e Exceptions | `Interfaces/**` é excluído no `.csproj`. |
 | `Src/Auth.Infra` | `ApplicationDbContext`, Identity (`ApplicationUser`, `ApplicationRole`), Repositórios, `Notificador`, Migrations | Implementa `ISecurityKeyContext` (`SecurityKeys`). |
 | `Src/Auth.Client` | UI administrativa em Blazor WASM + MudBlazor (`Users`, `Systems`, `Dialogs`) | `Nullable` desabilitado. Em Dev aponta para `http://localhost:5071`. |
-| `Tests/Auth.UnitTests` | Projeto de testes unitários | Atualmente apenas placeholder (`Class1.cs`), sem pacotes de teste configurados. |
+| `Tests/Auth.UnitTests` | Projeto de testes unitários (`xUnit` + `Moq`) | Cobre cenários de negócio de `AuthService` e `SystemService`. |
 
 ---
 
