@@ -55,6 +55,7 @@ O **Auth** é o serviço central de identidade de um ecossistema distribuído (e
 ## 📚 Documentação do Projeto
 
 - [CONTEXT.md](CONTEXT.md) — Contexto AI-First, estrutura da solution, arquivos-chave e débitos técnicos conhecidos.
+- [docs/client-integration-guide.md](docs/client-integration-guide.md) — Guia de integração para novos sistemas e apps clientes (contratos de Login, Refresh Token, Registro e Reset de Senha).
 - [docs/flows.md](docs/flows.md) — Mapeamento detalhado dos fluxos existentes com diagramas.
 - [docs/git-workflow.md](docs/git-workflow.md) — Estratégia de branches intermediárias (`preview` -> `main`), commits e PRs.
 
