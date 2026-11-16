@@ -17,7 +17,6 @@ namespace Auth.Application.Queries
                         u.""Email"",
                         r.""Id""        AS RoleId,
                         r.""Name"",
-                        r.""SystemId"",
                         s.""Id""        AS SystemId,
                         s.""Name"",
                         s.""Url""
@@ -34,7 +33,6 @@ namespace Auth.Application.Queries
                         u.""Email"",
                         r.""Id""        AS RoleId,
                         r.""Name"",
-                        r.""SystemId"",
                         s.""Id""        AS SystemId,
                         s.""Name"",
                         s.""Url""
@@ -98,7 +96,7 @@ namespace Auth.Application.Queries
 
                         return user;
                     },
-                    splitOn: "SystemId");
+                    splitOn: "RoleId, SystemId");
 
                 return lookup.Values.ToList();
             });

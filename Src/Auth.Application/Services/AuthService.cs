@@ -100,7 +100,7 @@ public class AuthService : BaseService, IAuthService
         if (!usuarioRegistrado.ValidationResult.IsValid || usuarioRegistrado == null)
             return default;
 
-        if (!await SalvaUserRoles(user, registerUser.Profile))
+        if (!await SalvaUserRoles(user, registerUser.Profile, registerUser.System))
             return default;
 
         return user.Id;
@@ -174,25 +174,33 @@ public class AuthService : BaseService, IAuthService
         return true;
     }
 
-    public async Task<string?> RefreshToken(RefreshTokenRequestViewModel request, string scheme, string host)
+    public async Task<LoginResponseViewModel?> RefreshToken(RefreshTokenRequestViewModel request, string scheme, string host)
     {
-        Guid parsedToken;
         if (string.IsNullOrEmpty(request.RefreshToken) || 
             string.IsNullOrEmpty(request.System) || 
-            !Guid.TryParse(request.RefreshToken, out parsedToken))
-            return RetornaErroProcessamento<string>("Refresh token inválido");
-
+            !Guid.TryParse(request.RefreshToken, out var parsedToken))
+            return RetornaErroProcessamento<LoginResponseViewModel?>("Refresh token inválido");
 
         var tokenPersisted = await ExecuteAsync(async () => await _authRepository.getRefreshToken(parsedToken));
 
-        if (tokenPersisted is null)
-            return RetornaErroProcessamento<string>("Refresh Token expirado");
+        if (tokenPersisted is null || !tokenPersisted.isValid())
+            return RetornaErroProcessamento<LoginResponseViewModel?>("Refresh Token expirado");
 
-        var token = await GenerateJwt(tokenPersisted.UserName, request.System, scheme, host);
-        if (string.IsNullOrEmpty(token))
+        var user = await ExecuteAsync(async () => await _authRepository.ObterUsuarioPorEmailAsync(tokenPersisted.UserName));
+        if (user is null)
+            return RetornaErroProcessamento<LoginResponseViewModel?>("Usuario não encontrado!");
+
+        var claims = await MountUserClaims(user, request.System);
+        if (claims is null)
             return default;
 
-        return token;
+        var token = await GenerateJwt(tokenPersisted.UserName, request.System, scheme, host, user, claims);
+        var newRefreshToken = await GenerateRefreshToken(tokenPersisted.UserName);
+
+        if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(newRefreshToken))
+            return default;
+
+        return MontarLoginResponse(user, token, claims, newRefreshToken);
     }
 
     private async Task<IList<Claim>?> MountUserClaims(ApplicationUser user, string system)
@@ -245,9 +253,19 @@ public class AuthService : BaseService, IAuthService
 
     private async Task<bool> UsuarioTemPermissao(ApplicationUser user, string system, IList<Claim> claims)
     {
+        if (string.IsNullOrWhiteSpace(system))
+            return RetornaErroProcessamento<bool>("Sistema inválido!");
+
+        var normalizedSystem = system.Trim().ToUpperInvariant();
+        var sistemaExiste = await ExecuteAsync(async () => await _authRepository.SistemaExisteAsync(normalizedSystem));
+        if (!sistemaExiste)
+            return RetornaErroProcessamento<bool>("Sistema não encontrado!");
+
+        var prefix = normalizedSystem.EndsWith(':') ? normalizedSystem : $"{normalizedSystem}:";
+
         var hasPermission = claims.Any(c =>
             c.Type == "permission" &&
-            c.Value.StartsWith(system)
+            c.Value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
             );
 
         if (!hasPermission)
@@ -335,14 +353,24 @@ public class AuthService : BaseService, IAuthService
             }
         };
 
-    private async Task<bool> SalvaUserRoles(ApplicationUser user, string role)
+    private async Task<bool> SalvaUserRoles(ApplicationUser user, string role, string system)
     {
-        var userRoles = await _authRepository.ObterNomeDasRolesPorUsuarioAsync(user);
-        if (userRoles.Contains(role))
+        var roleEntity = await ExecuteAsync(async () =>
+            await _authRepository.ObterRolePorSistemaENomeAsync(system, role));
+
+        if (roleEntity is null)
+            return RetornaErroProcessamento<bool>("Perfil não encontrado para o sistema informado!");
+
+        var jaPossuiRole = await ExecuteAsync(async () =>
+            await _authRepository.UsuarioPossuiRolePorIdAsync(user.Id, roleEntity.Id));
+
+        if (jaPossuiRole)
             return RetornaErroProcessamento<bool>("O usuário ja tem esse perfil!");
 
-        var resultAddRole = await _authRepository.SalvaRoleAsync(user, role);
-        if (!resultAddRole.Succeeded)
+        var resultAddRole = await ExecuteAsync(async () =>
+            await _authRepository.SalvaUserRolePorIdAsync(user.Id, roleEntity.Id));
+
+        if (!resultAddRole)
             return RetornaErroProcessamento<bool>("Falha ao salvar o perfil!");
 
         return true;

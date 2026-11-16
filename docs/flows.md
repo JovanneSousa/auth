@@ -85,11 +85,9 @@ sequenceDiagram
 **Entry point:** `AuthController.RefreshToken(RefreshTokenRequestViewModel)` -> `AuthService.RefreshToken`
 
 1. Valida se `RefreshToken` é um `Guid` válido e se `System` foi informado.
-2. Busca o registro na tabela `RefreshTokens` (`AsNoTracking`).
-3. Reemite um novo JWT chamando `GenerateJwt(tokenPersisted.UserName, request.System, scheme, host)` (revalidando claims e permissão para o sistema).
-4. Retorna `CustomResponse(new { Token = token })`.
-
-> **Nota técnica:** Atualmente o método não valida `tokenPersisted.ExpirationDate` nem gera um novo `RefreshToken` (rotação).
+2. Busca o registro na tabela `RefreshTokens` (`AsNoTracking`) e valida `tokenPersisted.isValid()` (`ExpirationDate > DateTime.UtcNow`).
+3. Revalida claims e permissão para o sistema (`MountUserClaims`), gera novo JWT e rotaciona o `RefreshToken` (`GenerateRefreshToken`).
+4. Retorna `CustomResponse(new { token = LoginResponseViewModel })`.
 
 ---
 

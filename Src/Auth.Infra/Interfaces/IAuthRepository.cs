@@ -114,6 +114,26 @@ namespace Auth.Infra.Interfaces
         /// </summary>
         Task<IList<ApplicationRole>> ObterRolesPorSistemIdAsync(string systemId);
 
+        /// <summary>
+        /// Obtém uma Role filtrando pelo sistema (Id, Nome ou prefixo) e nome da Role.
+        /// </summary>
+        Task<ApplicationRole?> ObterRolePorSistemaENomeAsync(string system, string roleName);
+
+        /// <summary>
+        /// Verifica se um usuário já possui vínculo com uma Role específica pelo RoleId.
+        /// </summary>
+        Task<bool> UsuarioPossuiRolePorIdAsync(string userId, string roleId);
+
+        /// <summary>
+        /// Associa um usuário diretamente a uma Role pelo seu RoleId.
+        /// </summary>
+        Task<bool> SalvaUserRolePorIdAsync(string userId, string roleId);
+
+        /// <summary>
+        /// Verifica se um sistema existe na base de dados (por Id, Nome ou prefixo).
+        /// </summary>
+        Task<bool> SistemaExisteAsync(string system);
+
         // UserManager
 
         /// <summary>

@@ -101,17 +101,16 @@ namespace fin_api.Controllers
             => CustomResponse(await _authService.ObterUsuarioPorId(id));
 
         /// <summary>
-        /// Retorna um jwt com base em um refreshToken
+        /// Retorna um novo par de tokens (JWT + RefreshToken) com base em um refreshToken válido.
         /// </summary>
         /// <param name="refreshTokenViewModel">refresh token e sistema.</param>
-        /// <returns>retorna token jwt em formato de string.</returns>
-
+        /// <returns>Objeto contendo o token de acesso e refresh token gerados.</returns>
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestViewModel refreshTokenViewModel)
         {
             var scheme = HttpContext.Request.Scheme;
             var host = HttpContext.Request.Host.ToString();
-            return CustomResponse(new {Token = await _authService.RefreshToken(refreshTokenViewModel, scheme, host) });
+            return CustomResponse(new { token = await _authService.RefreshToken(refreshTokenViewModel, scheme, host) });
         }
     }
 }
