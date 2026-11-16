@@ -20,6 +20,6 @@ namespace Auth.Domain.Entities
         public required DateTime ExpirationDate { get; set; }
 
         public bool isValid() => 
-            ExpirationDate.ToLocalTime() > DateTime.UtcNow;
+            ExpirationDate > DateTime.UtcNow;
     }
 }

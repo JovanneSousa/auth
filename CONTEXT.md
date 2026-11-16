@@ -63,8 +63,8 @@ Quando iniciar uma tarefa neste repositório, leia apenas os arquivos relevantes
   2. Busca claims das roles do usuário (`ObterClaimsPorUsuarioAsync`) e valida se existe alguma claim `"permission"` começando com `loginUser.System.ToUpper()`.
   3. Gera JWT assinado com chave JWKS atual (`Expires = +1h`, `Issuer = {scheme}://{host}`) e gera `RefreshToken` (GUID persistido no banco, substituindo tokens anteriores do mesmo `UserName`).
 - **Refresh Token (`POST /api/auth/refresh-token`):**
-  1. Valida formato GUID e busca `RefreshToken` no banco.
-  2. Gera novo JWT para o `System` informado.
+  1. Valida formato GUID, busca `RefreshToken` no banco e verifica `ExpirationDate` (`isValid()`).
+  2. Gera novo JWT para o `System` informado, rotaciona o `RefreshToken` e retorna `CustomResponse(new { token = LoginResponseViewModel })`.
 - **Recuperação de Senha (`POST /api/auth/forgot-password` e `reset-pass`):**
   1. `forgot-password`: gera token de reset no Identity, monta `{_frontUrl}/auth?email=...&token=...` e publica `EmailIntegrationEvent` no RabbitMQ (`_messageBus.PublishAsync`). Sempre retorna `true` se usuário não existir ou e-mail não confirmado.
   2. `reset-pass`: aplica `ResetarSenha` com token e nova senha.
@@ -83,9 +83,6 @@ Ao gerar código ou diagnosticar bugs, considere os seguintes fatos reais do có
 - **Notification Pattern:** Serviços **não** lançam exceções de negócio para o controller; notificam via `_notificador.Handle(...)` (ou `RetornaErroProcessamento<T>(...)` / `ExecuteAsync(...)` em `BaseService`) e retornam `default`/`false`.
 - **Exclusão de usuário desativada (`AuthRepository.DeleteAsync`):** Atualmente retorna `IdentityResult.Success` com a chamada `_userManager.DeleteAsync(usuario)` comentada (`Src/Auth.Infra/Repositories/AuthRepository.cs:55-57`).
 - **Remoção de sistema não implementada:** `SystemService.RemoveSistemaAsync` lança `NotImplementedException`.
-- **Expiração de Refresh Token:** `AuthService.RefreshToken` verifica se o registro existe na tabela `RefreshTokens`, mas **não valida `ExpirationDate`** nem rotaciona o token.
-- **Inconsistência de envelope no Login vs RefreshToken:** `AuthController.Login` retorna `CustomResponse(new { token = LoginResponseViewModel })`, enquanto `RefreshToken` retorna `CustomResponse(new { Token = string })`.
-- **Dapper `splitOn` em `AuthQueryService.ObterUsuariosComSistemas`:** Usa `splitOn: "SystemId"` (diferente de `ObterUsuarioPorId`, que usa `"RoleId, SystemId"`). Cuidado ao alterar colunas dessa query.
 - **Hard-fail no Startup:** Sem `ConnectionStrings:DefaultConnection` e `FrontEndSettings:AllowedApps` (array não vazio), a API falha ao iniciar.
 
 ---

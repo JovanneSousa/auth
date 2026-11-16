@@ -105,6 +105,64 @@ namespace Auth.Infra.Repositories
         public async Task<IdentityResult> RemoverRoleAsync(ApplicationRole role)
             => await ExecuteAsync(async () => await _roleManager.DeleteAsync(role));
 
+        public async Task<ApplicationRole?> ObterRolePorSistemaENomeAsync(string system, string roleName) =>
+            await ExecuteAsync(async () =>
+            {
+                var normalizedRole = roleName.Trim().ToUpperInvariant();
+                var normalizedSystem = system.Trim().ToUpperInvariant();
+
+                var rolesWithName = await _context.Roles
+                    .Include(r => r.System)
+                    .Where(r => r.NormalizedName == normalizedRole || (r.Name != null && r.Name.ToUpper() == normalizedRole))
+                    .ToListAsync();
+
+                if (rolesWithName.Count == 0)
+                    return null;
+
+                var matchedBySystem = rolesWithName.FirstOrDefault(r =>
+                    r.SystemId.Equals(normalizedSystem, StringComparison.OrdinalIgnoreCase) ||
+                    (r.System != null && (
+                        r.System.Name.Equals(normalizedSystem, StringComparison.OrdinalIgnoreCase) ||
+                        r.System.Name.StartsWith(normalizedSystem, StringComparison.OrdinalIgnoreCase))));
+
+                if (matchedBySystem is not null)
+                    return matchedBySystem;
+
+                return rolesWithName.Count == 1 ? rolesWithName[0] : null;
+            });
+
+        public async Task<bool> UsuarioPossuiRolePorIdAsync(string userId, string roleId) =>
+            await ExecuteAsync(async () =>
+                await _context.UserRoles.AnyAsync(ur => ur.UserId == userId && ur.RoleId == roleId));
+
+        public async Task<bool> SalvaUserRolePorIdAsync(string userId, string roleId) =>
+            await ExecuteAsync(async () =>
+            {
+                await _context.UserRoles.AddAsync(new IdentityUserRole<string>
+                {
+                    UserId = userId,
+                    RoleId = roleId
+                });
+                await _context.SaveChangesAsync();
+                return true;
+            });
+
+        public async Task<bool> SistemaExisteAsync(string system) =>
+            await ExecuteAsync(async () =>
+            {
+                var normalized = system.Trim().ToUpperInvariant();
+                var prefix = normalized.EndsWith(':') ? normalized : $"{normalized}:";
+
+                return await _context.SystemEntity.AnyAsync(s =>
+                           s.Id.ToUpper() == normalized ||
+                           s.Name.ToUpper() == normalized ||
+                           s.Name.ToUpper().StartsWith(normalized)) ||
+                       await _context.RoleClaims.AnyAsync(rc =>
+                           rc.ClaimType == "permission" &&
+                           rc.ClaimValue != null &&
+                           rc.ClaimValue.ToUpper().StartsWith(prefix));
+            });
+
         // User Manager
         public async Task<string> GeraTokenReset(ApplicationUser user) =>
             await ExecuteAsync(async () => await _userManager.GeneratePasswordResetTokenAsync(user));

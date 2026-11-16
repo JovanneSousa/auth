@@ -6,6 +6,6 @@ namespace Auth.Domain.Extensions
 {
     public class AppTokenSettings
     {
-        public int RefreshTokenExpiration { get; set; }
+        public int RefreshTokenExpiration { get; set; } = 7;
     }
 }

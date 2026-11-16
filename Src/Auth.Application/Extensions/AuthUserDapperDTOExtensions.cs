@@ -24,7 +24,7 @@ namespace Auth.Application.Extensions
             Id = sistema.SystemId,
             Name = sistema.Name,
             Url = sistema.Url,
-            Permissoes = role is not null 
+            Permissoes = role is not null && role.EhValido()
                 ? new List<ApplicationRoleViewModel> { role.ToViewModel() } 
                 : new()
         };

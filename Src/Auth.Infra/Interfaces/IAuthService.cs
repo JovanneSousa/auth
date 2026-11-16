@@ -9,9 +9,9 @@ namespace Auth.Infra.Interfaces;
 public interface IAuthService
 {
     /// <summary>
-    /// Realiza a reemissão do jwt com base em um refreshToken
+    /// Realiza a reemissão do jwt e rotação do refreshToken com base em um refreshToken válido.
     /// </summary>
-    Task<string?> RefreshToken(RefreshTokenRequestViewModel request, string scheme, string host);
+    Task<LoginResponseViewModel?> RefreshToken(RefreshTokenRequestViewModel request, string scheme, string host);
 
     /// <summary>
     /// Realiza o cadastro de um novo usuário, validando se já existe e integrando com outros sistemas.
