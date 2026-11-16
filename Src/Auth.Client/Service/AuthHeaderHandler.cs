@@ -17,9 +17,11 @@ namespace Auth.Client.Service
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var path = request.RequestUri?.AbsolutePath ?? string.Empty;
-            var isAuthEndpoint = path.EndsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase) ||
-                                 path.EndsWith("/api/auth/refresh-token", StringComparison.OrdinalIgnoreCase);
+            var path = request.RequestUri?.IsAbsoluteUri == true
+                ? request.RequestUri.AbsolutePath
+                : request.RequestUri?.OriginalString ?? string.Empty;
+            var isAuthEndpoint = path.EndsWith("api/auth/login", StringComparison.OrdinalIgnoreCase) ||
+                                 path.EndsWith("api/auth/refresh-token", StringComparison.OrdinalIgnoreCase);
 
             if (!isAuthEndpoint)
             {
