@@ -2,6 +2,7 @@ using Auth.Api.Configuration;
 using Auth.Infra.Data;
 using Auth.Infra.Identity;
 using Jovanne.Jwks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,12 +19,29 @@ await builder
 builder.Services
     .AddRazorPages();
 
+var jwksUrl = builder.Configuration["JwtSettings:AutenticacaoJwksUrl"];
+var allowHttpJwks = builder.Environment.IsDevelopment() ||
+                    (!string.IsNullOrWhiteSpace(jwksUrl) && jwksUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase));
+
 builder.Services
     .AddJovanneJwksFull<
         ApplicationUser, 
         ApplicationRole, 
         ApplicationDbContext>
-        (builder.Configuration, builder.Environment.IsDevelopment());
+        (builder.Configuration, allowHttpJwks);
+
+builder.Services.PostConfigureAll<JwtBearerOptions>(options =>
+{
+    if (allowHttpJwks)
+    {
+        options.RequireHttpsMetadata = false;
+    }
+
+    if (string.IsNullOrWhiteSpace(builder.Configuration["JwtSettings:Issuer"]))
+    {
+        options.TokenValidationParameters.ValidateIssuer = false;
+    }
+});
 
 builder = await builder.AddMessageBus();
 
@@ -53,6 +71,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseJwksDiscovery();

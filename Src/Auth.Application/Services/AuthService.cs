@@ -10,6 +10,7 @@ using FluentValidation.Results;
 using Messages;
 using Messages.Integration;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NetDevPack.Security.Jwt.Core.Interfaces;
@@ -32,6 +33,7 @@ public class AuthService : BaseService, IAuthService
     private readonly IAuthQueryService _authQuery;
     private readonly IJwtService _jwksService;
     private readonly AppTokenSettings _appTokenSettings;
+    private readonly IConfiguration _configuration;
 
     public AuthService(
         IAuthRepository authRepository,
@@ -42,7 +44,8 @@ public class AuthService : BaseService, IAuthService
         IOptions<FrontEndSettings> settings,
         IJwtService jwksService,
         IOptions<AppTokenSettings> appTokenSettings,
-        IAuthQueryService authQuery) : base(notificador)
+        IAuthQueryService authQuery,
+        IConfiguration configuration) : base(notificador)
     {
         _appTokenSettings = appTokenSettings.Value;
         _jwksService = jwksService;
@@ -51,6 +54,7 @@ public class AuthService : BaseService, IAuthService
         _messageBus = messageBus;
         _frontUrl = settings.Value.AllowedApps.First();
         _authQuery = authQuery;
+        _configuration = configuration;
     }
 
     public async Task<AuthUserViewModel?> ObterUsuarioPorId(string id)
@@ -411,17 +415,27 @@ public class AuthService : BaseService, IAuthService
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = await _jwksService.GetCurrentSigningCredentials();
+        var issuer = ObterIssuer(scheme, host);
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Issuer = $"{scheme}://{host}",
+            Issuer = issuer,
             Expires = DateTime.UtcNow.AddHours(1),
             SigningCredentials = key
         };
 
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return tokenHandler.WriteToken(token);
+    }
+
+    private string ObterIssuer(string scheme, string host)
+    {
+        var configuredIssuer = _configuration["JwtSettings:Issuer"];
+        if (!string.IsNullOrWhiteSpace(configuredIssuer))
+            return configuredIssuer;
+
+        return $"{scheme}://{host}";
     }
 
     private LoginResponseViewModel MontarLoginResponse(ApplicationUser user, string token, IEnumerable<Claim> claims, string refreshToken)
