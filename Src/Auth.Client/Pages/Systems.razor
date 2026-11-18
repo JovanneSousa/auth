@@ -10,12 +10,19 @@
 
 @if (_sistemas == null)
 {
-    <p><em>Loading...</em></p>
+    <MudStack Spacing="2">
+        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
+        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
+        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
+    </MudStack>
 } else 
 {
     <MudStack Spacing="4">
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.h5">Sistemas</MudText>
+        <MudStack Row="true" Wrap="Wrap.Wrap" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Spacing="2">
+            <div>
+                <MudText Typo="Typo.h5" Tag="h1">Sistemas</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Aplicações protegidas, seus perfis (roles) e claims de permissão.</MudText>
+            </div>
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
                        OnClick="NovoSistemaAsync">
@@ -23,32 +30,58 @@
             </MudButton>
         </MudStack>
 
+        <MudTextField @bind-Value="_busca" Immediate="true" Placeholder="Buscar sistema por nome ou URL"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      aria-label="Buscar sistemas" />
+
+        @if (!SistemasFiltrados.Any())
+        {
+            <MudPaper Outlined="true" Class="pa-8">
+                <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Outlined.Apps" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_busca) ? "Nenhum sistema cadastrado" : "Nenhum sistema encontrado para a busca")</MudText>
+                    @if (string.IsNullOrWhiteSpace(_busca))
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NovoSistemaAsync">Criar primeiro sistema</MudButton>
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+
         <MudExpansionPanels MultiExpansion="true">
-            @foreach (var sistema in _sistemas)
+            @foreach (var sistema in SistemasFiltrados)
             {
                 <MudExpansionPanel>
                     <TitleContent>
                         <MudStack Row="true" Justify="Justify.SpaceBetween"
-                                  AlignItems="AlignItems.Center" Style="width:100%; padding-right:8px;">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                  AlignItems="AlignItems.Center" Wrap="Wrap.NoWrap" Style="width:100%; padding-right:8px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Style="min-width:0">
                                 <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
                                     @Initials(sistema.Name)
                                 </MudAvatar>
-                                <div>
+                                <div style="min-width:0">
                                     <MudText Typo="Typo.subtitle1" Style="font-weight:500">@sistema.Name</MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@sistema.Url</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="auth-mono" Style="word-break:break-all">@sistema.Url</MudText>
                                 </div>
                             </MudStack>
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
-                                    @sistema.Permissoes.Count role(s)
-                                </MudChip>
+                                <MudHidden Breakpoint="Breakpoint.XsAndDown">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                                        @sistema.Permissoes.Count role(s)
+                                    </MudChip>
+                                </MudHidden>
+                                <MudTooltip Text="Editar sistema">
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                               Title="Editar sistema"
+                                               aria-label="@($"Editar sistema {sistema.Name}")"
                                                OnClick="() => OpenSistemaDialog(sistema)" />
+                                </MudTooltip>
+                                <MudTooltip Text="Excluir sistema">
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                Size="Size.Small" Color="Color.Error"
+                                               aria-label="@($"Excluir sistema {sistema.Name}")"
                                                OnClick="() => RemoverSistema(sistema)" />
+                                </MudTooltip>
                             </MudStack>
                         </MudStack>
                     </TitleContent>
@@ -67,9 +100,9 @@
                                                     <MudText Typo="Typo.subtitle2">@role.Name</MudText>
                                                 </CardHeaderContent>
                                                 <CardHeaderActions>
-                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                    <MudTooltip Text="Excluir role"><MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                                    Size="Size.Small" Color="Color.Error"
-                                                                   OnClick="() => RemoverRole(sistema, role)" />
+                                                                   aria-label="Excluir role" OnClick="() => RemoverRole(sistema, role)" /></MudTooltip>
                                                 </CardHeaderActions>
                                             </MudCardHeader>
 
@@ -90,7 +123,7 @@
                                                                      Variant="Variant.Outlined"
                                                                      OnClose="() => RemoverClaim(role.Id, claim)"
                                                                      CloseIcon="@Icons.Material.Filled.Close"
-                                                                     Style="font-size:11px">
+                                                                     Class="auth-mono">
                                                                 @claim.ClaimValue
                                                             </MudChip>
                                                         </MudItem>
@@ -101,20 +134,20 @@
 
                                                 @if (_roleComInputAberto == role.Id)
                                                 {
-                                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                    <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" Spacing="1">
                                                         <MudTextField @bind-Value="_novaClaimTexto"
-                                                                      Placeholder="ex: usuarios:criar"
+                                                                      Placeholder="ex: AUTH:LER" HelperText="Padrão SISTEMA:ACAO"
                                                                       Variant="Variant.Outlined"
                                                                       Margin="Margin.Dense"
-                                                                      Style="min-width:200px; font-size:12px"
+                                                                      Class="auth-mono" Style="min-width:200px"
                                                                       @onkeydown="(e) => OnClaimKeyDown(e, role.Id)"
                                                                       Immediate="true" />
                                                         <MudIconButton Icon="@Icons.Material.Filled.Check"
                                                                        Size="Size.Small" Color="Color.Success"
-                                                                       OnClick="() => ConfirmarClaim(role.Id)" />
+                                                                       aria-label="Confirmar claim" OnClick="() => ConfirmarClaim(role.Id)" />
                                                         <MudIconButton Icon="@Icons.Material.Filled.Close"
                                                                        Size="Size.Small"
-                                                                       OnClick="CancelarClaim" />
+                                                                       aria-label="Cancelar" OnClick="CancelarClaim" />
                                                     </MudStack>
                                                 }
                                                 else
@@ -152,7 +185,7 @@
                                         @foreach (var usuario in usuariosSistema)
                                         {
                                             <MudPaper Outlined="true" Class="pa-3">
-                                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                                <MudStack Row="true" Wrap="Wrap.Wrap" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Spacing="2">
                                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
                                                         <MudAvatar Color="Color.Secondary" Size="Size.Small">
                                                             @Initials(usuario.Nome)
@@ -162,7 +195,7 @@
                                                             <MudText Typo="Typo.caption" Color="Color.Secondary">@usuario.Email</MudText>
                                                         </div>
                                                     </MudStack>
-                                                    <MudStack Row="true" Spacing="1">
+                                                    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
                                                         @foreach (var perm in usuario.Systems.SelectMany(s => s.Permissoes))
                                                         {
                                                             <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
@@ -187,13 +220,13 @@
 
                                     @if (_sistemaComVinculoAberto == sistema.Id)
                                     {
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" Spacing="2">
                                             <MudSelect T="string"
                                                        @bind-Value="_usuarioSelecionadoId"
                                                        Label="Usuário"
                                                        Variant="Variant.Outlined"
                                                        Margin="Margin.Dense"
-                                                       Style="min-width: 240px;">
+                                                       Style="min-width: 220px; flex:1 1 220px;">
                                                 @foreach (var u in _todosUsuarios)
                                                 {
                                                     <MudSelectItem T="string" Value="@u.Id">
@@ -207,7 +240,7 @@
                                                        Label="Role"
                                                        Variant="Variant.Outlined"
                                                        Margin="Margin.Dense"
-                                                       Style="min-width: 180px;">
+                                                       Style="min-width: 160px; flex:1 1 160px;">
                                                 @foreach (var r in sistema.Permissoes)
                                                 {
                                                     <MudSelectItem T="string" Value="@r.Id">
@@ -218,10 +251,10 @@
 
                                             <MudIconButton Icon="@Icons.Material.Filled.Check"
                                                            Size="Size.Small" Color="Color.Success"
-                                                           OnClick="() => ConfirmarVinculoUsuarioAsync(sistema)" />
+                                                           aria-label="Confirmar vínculo" OnClick="() => ConfirmarVinculoUsuarioAsync(sistema)" />
                                             <MudIconButton Icon="@Icons.Material.Filled.Close"
                                                            Size="Size.Small"
-                                                           OnClick="CancelarVinculoUsuario" />
+                                                           aria-label="Cancelar vínculo" OnClick="CancelarVinculoUsuario" />
                                         </MudStack>
                                     }
                                     else
@@ -249,6 +282,13 @@
 
 @code {
     private List<SystemViewModel> _sistemas;
+    private string _busca;
+
+    private IEnumerable<SystemViewModel> SistemasFiltrados =>
+        (_sistemas ?? new()).Where(s =>
+            string.IsNullOrWhiteSpace(_busca)
+            || (s.Name?.Contains(_busca, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (s.Url?.Contains(_busca, StringComparison.OrdinalIgnoreCase) ?? false));
     private Dictionary<string, List<ApplicationClaimViewModel>> _claimsPorRole = new();
     private Dictionary<string, List<AuthUserViewModel>> _usuariosPorSistema = new();
     private List<AuthUserViewModel> _todosUsuarios = new();
@@ -411,7 +451,9 @@
     {
         var options = new DialogOptions
         {
-            FullWidth = true
+            FullWidth = true,
+            MaxWidth = MaxWidth.Small,
+            CloseOnEscapeKey = true
         };
         var dialog = await DialogService.ShowAsync<CreateSystemDialog>("", options);
         var result = await dialog.Result;
@@ -452,7 +494,9 @@
     {
         var options = new DialogOptions
         {
-            FullWidth = true
+            FullWidth = true,
+            MaxWidth = MaxWidth.Small,
+            CloseOnEscapeKey = true
         };
         var copia = new SystemViewModel
         {

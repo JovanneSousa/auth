@@ -6,21 +6,21 @@
 @inject ISnackbar Snackbar
 
 <MudDialog>
-    <DialogContent>
+    <DialogContent><MudStack Spacing="3">
         <MudText Typo="Typo.h6">@(IsEditing ? "Editar Sistema" : "Criar Sistema")</MudText>
 
         <MudTextField @bind-Value="Model.Name"
-                      Label="Nome" Required="true"
+                      Label="Nome" Variant="Variant.Outlined" Required="true"
                       RequiredError="O nome é obrigatório" />
 
         <MudTextField @bind-Value="Model.Url"
-                      Label="Url" Required="true"
+                      Label="URL" Variant="Variant.Outlined" HelperText="Endereço base da aplicação, ex.: https://app.exemplo.com" Required="true"
                       RequiredError="A Url é obrigatória" />
-    </DialogContent>
+    </MudStack></DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Submit">Salvar</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Salvar</MudButton>
     </DialogActions>
 </MudDialog>
 
