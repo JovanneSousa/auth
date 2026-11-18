@@ -7,75 +7,159 @@
 @inject IApiService _apiService;
 @inject ISnackbar Snackbar;
 
-@if (Usuarios == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <MudDataGrid @ref="_elementGrid"
-                 T="AuthUserViewModel"
-                 Items="@Usuarios"
-                 EditMode="@DataGridEditMode.Form"
-                 ReadOnly="false"
-                 Bordered="true"
-                 Dense="true"
-                 EditTrigger="DataGridEditTrigger.Manual"
-                 RowClick="OnRowClick">
+<PageTitle>Usuários - Auth Manager</PageTitle>
 
-        <ToolBarContent>
-            <MudText Typo="Typo.h6">Lista de usuarios</MudText>
-            <MudSpacer />
-            <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Filled">
-                <MudButton OnClick="NewItemAsync">
-                    Criar Novo Usuario
-                </MudButton>
-            </MudButtonGroup>
-        </ToolBarContent>
-        <Columns>
-            <PropertyColumn Property="x => x.Nome" />
-            <PropertyColumn Property="x => x.Email" />
-            <TemplateColumn Title="Sistemas">
-                <CellTemplate Context="context">
-                    @if (context.Item.Systems != null && context.Item.Systems.Any())
-                    {
-                        @string.Join(", ", context.Item.Systems.OrderBy(s => s.Name).Select(s => s.Name))
-                    }
-                    else
-                    {
-                        <MudText Color="Color.Secondary">Nenhum sistema</MudText>
-                    }
-                </CellTemplate>
-            </TemplateColumn>
+<MudStack Spacing="4">
+    <MudStack Row="true" Wrap="Wrap.Wrap" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Spacing="2">
+        <div>
+            <MudText Typo="Typo.h5" Tag="h1">Usuários</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Identidades com acesso aos sistemas protegidos.</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="NewItemAsync">
+            Novo usuário
+        </MudButton>
+    </MudStack>
 
-            <TemplateColumn Title="Ações" CellClass="d-flex justify-between">
-                <CellTemplate>
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteItem(context.Item))" />
-                </CellTemplate>
-            </TemplateColumn>
-        </Columns>
-    </MudDataGrid>
+    <MudTextField @bind-Value="_busca" Immediate="true" Placeholder="Buscar por nome, e-mail ou sistema"
+                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                  Clearable="true" aria-label="Buscar usuários" />
 
-}
+    @if (Usuarios == null)
+    {
+        <MudStack Spacing="2">
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" />
+        </MudStack>
+    }
+    else if (_erroCarregamento)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+            Não foi possível carregar os usuários.
+            <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" OnClick="CarregarAsync">Tentar novamente</MudButton>
+        </MudAlert>
+    }
+    else if (!Filtrados.Any())
+    {
+        <MudPaper Outlined="true" Class="pa-8">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Outlined.People" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_busca) ? "Nenhum usuário cadastrado" : "Nenhum usuário encontrado para a busca")</MudText>
+                @if (string.IsNullOrWhiteSpace(_busca))
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NewItemAsync">Criar primeiro usuário</MudButton>
+                }
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
+        @* Desktop: tabela *@
+        <MudHidden Breakpoint="Breakpoint.SmAndDown">
+            <MudPaper Outlined="true">
+                <MudTable Items="@Filtrados" Hover="true" Dense="true" Elevation="0" OnRowClick="OnRowClick" T="AuthUserViewModel" RowStyle="cursor:pointer">
+                    <HeaderContent>
+                        <MudTh>Nome</MudTh>
+                        <MudTh>E-mail</MudTh>
+                        <MudTh>Sistemas</MudTh>
+                        <MudTh Style="text-align:right">Ações</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Nome</MudTd>
+                        <MudTd>@context.Email</MudTd>
+                        <MudTd>@SistemasChips(context)</MudTd>
+                        <MudTd Style="text-align:right">
+                            <MudTooltip Text="Excluir usuário">
+                                <MudIconButton Size="Size.Small" Color="Color.Error"
+                                               Icon="@Icons.Material.Outlined.Delete"
+                                               aria-label="@($"Excluir usuário {context.Nome}")"
+                                               OnClick="@(() => DeleteItem(context))" />
+                            </MudTooltip>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudHidden>
+
+        @* Mobile: cards empilhados *@
+        <MudHidden Breakpoint="Breakpoint.MdAndUp">
+            <MudStack Spacing="2">
+                @foreach (var u in Filtrados)
+                {
+                    <MudPaper Outlined="true" Class="pa-3 auth-card-hover">
+                        <MudStack Spacing="2">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                <div style="min-width:0; cursor:pointer" @onclick="() => AbrirDetalhesAsync(u)">
+                                    <MudText Typo="Typo.subtitle1">@u.Nome</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Style="word-break:break-all">@u.Email</MudText>
+                                </div>
+                                <MudIconButton Size="Size.Medium" Color="Color.Error"
+                                               Icon="@Icons.Material.Outlined.Delete"
+                                               aria-label="@($"Excluir usuário {u.Nome}")"
+                                               OnClick="@(() => DeleteItem(u))" />
+                            </MudStack>
+                            <div>@SistemasChips(u)</div>
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="() => AbrirDetalhesAsync(u)">Ver detalhes</MudButton>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudStack>
+        </MudHidden>
+    }
+</MudStack>
 
 @code {
     private List<AuthUserViewModel> Usuarios;
-    private List<string> _events = new();
-    private MudDataGrid<AuthUserViewModel> _elementGrid = default!;
+    private bool _erroCarregamento;
+    private string _busca;
 
-    protected override async Task OnInitializedAsync()
+    private IEnumerable<AuthUserViewModel> Filtrados =>
+        (Usuarios ?? new()).Where(u =>
+            string.IsNullOrWhiteSpace(_busca)
+            || (u.Nome?.Contains(_busca, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (u.Email?.Contains(_busca, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (u.Systems?.Any(s => s.Name.Contains(_busca, StringComparison.OrdinalIgnoreCase)) ?? false));
+
+    private RenderFragment SistemasChips(AuthUserViewModel u) => __builder =>
     {
+        if (u.Systems != null && u.Systems.Any())
+        {
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                @foreach (var s in u.Systems.OrderBy(s => s.Name))
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@s.Name</MudChip>
+                }
+            </MudStack>
+        }
+        else
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Nenhum sistema</MudText>
+        }
+    };
+
+    protected override async Task OnInitializedAsync() => await CarregarAsync();
+
+    private async Task CarregarAsync()
+    {
+        _erroCarregamento = false;
+        Usuarios = null;
         var result = await _apiService.GetAsync<IEnumerable<AuthUserViewModel>>("api/auth/listar-usuarios");
         Usuarios = result.Success ? result.Data.ToList() : new();
 
         if (!result.Success)
+        {
+            _erroCarregamento = true;
             MostraErros(result.Errors);
-
+        }
     }
 
-    private async Task OnRowClick(DataGridRowClickEventArgs<AuthUserViewModel> args)
+    private async Task OnRowClick(TableRowClickEventArgs<AuthUserViewModel> args) => await AbrirDetalhesAsync(args.Item);
+
+    private async Task AbrirDetalhesAsync(AuthUserViewModel item)
     {
-        var response = await _apiService.GetAsync<AuthUserViewModel>($"api/auth/details-user/{args.Item.Id}");
+        var response = await _apiService.GetAsync<AuthUserViewModel>($"api/auth/details-user/{item.Id}");
 
         if (!response.Success)
         {
@@ -102,14 +186,17 @@ else
     {
         var options = new DialogOptions
         {
-            FullWidth = true
+            FullWidth = true,
+            MaxWidth = MaxWidth.Small,
+            CloseOnEscapeKey = true
         };
         var dialog = await DialogService.ShowAsync<CreateUserDialog>("", options);
         var result = await dialog.Result;
 
-        if(!result.Canceled && result.Data is AuthUserViewModel novoUsuario)
+        if (!result.Canceled && result.Data is AuthUserViewModel novoUsuario)
         {
             Usuarios.Add(novoUsuario);
+            _erroCarregamento = false;
             StateHasChanged();
         }
     }
@@ -118,7 +205,7 @@ else
     {
         bool? confirm = await DialogService.ShowMessageBoxAsync(
                 title: "Confirmar exclusão",
-                markupMessage: (MarkupString)$"Deseja excluir o usuário <b>{item.Nome}</b> permanentemente?",
+                markupMessage: (MarkupString)$"Deseja excluir o usuário <b>{System.Net.WebUtility.HtmlEncode(item.Nome)}</b> permanentemente? Esta ação não pode ser desfeita.",
                 yesText: "Excluir",
                 noText: "Cancelar");
 
@@ -129,14 +216,19 @@ else
             if (response.Success)
             {
                 Usuarios.Remove(item);
+                Snackbar.Add("Usuário excluído com sucesso.", Severity.Success);
                 StateHasChanged();
+            }
+            else
+            {
+                MostraErros(response.Errors);
             }
         }
     }
 
     private void MostraErros(IEnumerable<string> erros)
     {
-        foreach (var erro in erros)
+        foreach (var erro in erros ?? Array.Empty<string>())
             Snackbar.Add(erro, Severity.Error);
     }
 }

@@ -1,12 +1,10 @@
-﻿<footer class="footer">
-    <div class="row">
-        <span>&copy; @DateTime.Now.Year -  Jovane Sousa - Auth Manager </span>
-    </div>
-    <div class="row">
-        <div class="footer-links">
-            <NavLink class="footer-link" href="/privacidade">Politica de privacidade</NavLink>
-            <NavLink class="footer-link" href="/termos">Termos de serviço</NavLink>
-            <NavLink class="footer-link" target="blank" href="https://portifolio.jovanne.dev.br">Sobre mim</NavLink>
-        </div>
-    </div>
+﻿<footer class="auth-footer">
+    <MudStack Row="true" Wrap="Wrap.Wrap" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Spacing="2">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">&copy; @DateTime.Now.Year - Jovane Sousa - Auth Manager</MudText>
+        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="3">
+            <MudLink Href="/privacidade" Typo="Typo.caption">Política de privacidade</MudLink>
+            <MudLink Href="/termos" Typo="Typo.caption">Termos de serviço</MudLink>
+            <MudLink Href="https://portifolio.jovanne.dev.br" Target="_blank" Typo="Typo.caption">Sobre mim</MudLink>
+        </MudStack>
+    </MudStack>
 </footer>
