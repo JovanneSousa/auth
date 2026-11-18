@@ -20,7 +20,7 @@
     <MudStack Spacing="4">
         <MudStack Row="true" Wrap="Wrap.Wrap" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Spacing="2">
             <div>
-                <MudText Typo="Typo.h5" Tag="h1">Sistemas</MudText>
+                <MudText Typo="Typo.h5" HtmlTag="h1">Sistemas</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">Aplicações protegidas, seus perfis (roles) e claims de permissão.</MudText>
             </div>
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
@@ -66,7 +66,7 @@
                                 </div>
                             </MudStack>
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudHidden Breakpoint="Breakpoint.XsAndDown">
+                                <MudHidden Breakpoint="Breakpoint.Xs">
                                     <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
                                         @sistema.Permissoes.Count role(s)
                                     </MudChip>
