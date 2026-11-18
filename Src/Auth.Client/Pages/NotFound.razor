@@ -1,5 +1,15 @@
 ﻿@page "/not-found"
 @layout MainLayout
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<PageTitle>Página não encontrada - Auth Manager</PageTitle>
+
+<MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-8">
+    <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Color="Color.Secondary" />
+    <MudText Typo="Typo.h5" HtmlTag="h1">Página não encontrada</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+        O endereço acessado não existe ou foi movido.
+    </MudText>
+    <MudButton Href="/" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Home">
+        Voltar ao início
+    </MudButton>
+</MudStack>

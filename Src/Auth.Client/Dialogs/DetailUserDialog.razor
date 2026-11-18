@@ -4,8 +4,8 @@
 @inject HttpClient httpClient;
 
 <MudDialog>
-    <DialogContent>
-        <MudTextField @bind-Value="Model.Nome" Label="Nome" Required="true" />
+    <DialogContent><MudStack Spacing="3">
+        <MudTextField @bind-Value="Model.Nome" Label="Nome" Variant="Variant.Outlined" Required="true" />
         <MudTextField @bind-Value="Model.Email" Label="Email" Required="true" />
         @* <MudTextField @bind-Value="Model.Password" Label="Senha" InputType="InputType.Password" />
         <MudTextField @bind-Value="Model.ConfirmPassword" Label="Confirmar Senha" InputType="InputType.Password" /> *@
@@ -35,11 +35,11 @@
                 </MudTd>
             </RowTemplate>
         </MudTable>
-    </DialogContent>
+    </MudStack></DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Submit">Salvar</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Salvar</MudButton>
     </DialogActions>
 </MudDialog>
 

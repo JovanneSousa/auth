@@ -3,62 +3,61 @@
 
 @inject IAuthStateService AuthState
 @inject NavigationManager Navigation
+@inject IBrowserViewportService Viewport
 
-@* Required *@
-<MudThemeProvider />
+<MudThemeProvider Theme="AuthTheme.Default" />
 <MudPopoverProvider />
-
-@* Needed for dialogs *@
-<MudDialogProvider />
-
-@* Needed for snackbars *@
+<MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.Small" CloseOnEscapeKey="true" />
 <MudSnackbarProvider />
 
 @if (!AuthState.IsInitialized)
 {
-    <MudContainer Class="d-flex align-center justify-center" Style="min-height: 90vh;">
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    </MudContainer>
+    <div class="auth-center">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" aria-label="Carregando aplicação" />
+    </div>
 }
 else if (IsLoginRoute)
 {
-    <main>
-        <article class="content px-4">
-            @Body
-        </article>
+    <main class="auth-login-bg">
+        @Body
     </main>
 }
 else if (AuthState.IsAuthenticated)
 {
-    <div class="page">
-        <div class="sidebar">
+    <MudLayout>
+        <MudAppBar Elevation="0" Dense="true">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                           aria-label="Abrir menu de navegação"
+                           OnClick="() => _drawerOpen = !_drawerOpen" />
+            <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Tertiary" Class="mr-2" />
+            <MudText Typo="Typo.h6" Class="auth-brand">Auth Manager</MudText>
+            <MudSpacer />
+            <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                <MudText Typo="Typo.body2" Class="mr-3 auth-user-email">@AuthState.UserEmail</MudText>
+            </MudHidden>
+            <MudTooltip Text="@($"Sair ({AuthState.UserEmail})")">
+                <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit"
+                               aria-label="Sair da aplicação" OnClick="SairAsync" />
+            </MudTooltip>
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive"
+                   Breakpoint="Breakpoint.Md" Elevation="0" ClipMode="DrawerClipMode.Always">
             <NavMenu />
-        </div>
+        </MudDrawer>
 
-        <main>
-            <div class="top-row px-4 d-flex justify-end align-center">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    <MudText Typo="Typo.body2">@AuthState.UserEmail</MudText>
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Error"
-                               Size="Size.Small"
-                               StartIcon="@Icons.Material.Filled.Logout"
-                               OnClick="SairAsync">
-                        Sair
-                    </MudButton>
-                </MudStack>
-            </div>
-
-            <article class="content px-4">
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-3 pa-sm-6 auth-content">
                 @Body
-            </article>
-
+            </MudContainer>
             <Footer />
-        </main>
-    </div>
+        </MudMainContent>
+    </MudLayout>
 }
 
 @code {
+    private bool _drawerOpen = true;
+
     private bool IsLoginRoute =>
         Navigation.ToBaseRelativePath(Navigation.Uri)
             .TrimStart('/')
@@ -67,6 +66,7 @@ else if (AuthState.IsAuthenticated)
     protected override async Task OnInitializedAsync()
     {
         AuthState.OnChange += HandleAuthStateChanged;
+        Navigation.LocationChanged += HandleLocationChanged;
         await AuthState.InitializeAsync();
         EnforceAuthenticationRedirect();
     }
@@ -76,6 +76,17 @@ else if (AuthState.IsAuthenticated)
         if (AuthState.IsInitialized)
         {
             EnforceAuthenticationRedirect();
+        }
+    }
+
+    private async void HandleLocationChanged(object sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Mobile: recolhe o menu automaticamente ao navegar.
+        var bp = await Viewport.GetCurrentBreakpointAsync();
+        if (bp is Breakpoint.Xs or Breakpoint.Sm)
+        {
+            _drawerOpen = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -106,5 +117,6 @@ else if (AuthState.IsAuthenticated)
     public void Dispose()
     {
         AuthState.OnChange -= HandleAuthStateChanged;
+        Navigation.LocationChanged -= HandleLocationChanged;
     }
 }

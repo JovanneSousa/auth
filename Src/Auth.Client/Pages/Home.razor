@@ -1,7 +1,47 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+@inject IAuthStateService AuthState
+@inject NavigationManager Navigation
 
-<h1>Auth Manager</h1>
+<PageTitle>Início - Auth Manager</PageTitle>
 
-Aplicação web com blazor para gerenciar usuarios na api de autenticação.
+<MudStack Spacing="5">
+    <MudStack Spacing="1">
+        <MudText Typo="Typo.h5" HtmlTag="h1">Console de controle de acesso</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Gerencie usuários, sistemas, perfis e permissões (<span class="auth-mono">SISTEMA:ACAO</span>) que protegem suas APIs.
+        </MudText>
+    </MudStack>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6">
+            <MudPaper Outlined="true" Class="pa-4 auth-card-hover" Style="cursor:pointer; height:100%;"
+                      @onclick='() => Navigation.NavigateTo("usuarios")'>
+                <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
+                    <MudAvatar Color="Color.Primary" Variant="Variant.Outlined"><MudIcon Icon="@Icons.Material.Outlined.People" /></MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.subtitle1">Usuários</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Cadastre, consulte e remova identidades e seus vínculos.</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudPaper Outlined="true" Class="pa-4 auth-card-hover" Style="cursor:pointer; height:100%;"
+                      @onclick='() => Navigation.NavigateTo("sistemas")'>
+                <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
+                    <MudAvatar Color="Color.Tertiary" Variant="Variant.Outlined"><MudIcon Icon="@Icons.Material.Outlined.Apps" /></MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.subtitle1">Sistemas</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Configure aplicações, perfis (roles) e claims de permissão.</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Outlined="true" Class="pa-4">
+        <MudText Typo="Typo.overline" Color="Color.Secondary">Sessão atual</MudText>
+        <MudText Typo="Typo.body1">@AuthState.UserEmail</MudText>
+    </MudPaper>
+</MudStack>
